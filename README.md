@@ -20,6 +20,14 @@ Keys `1`-`9` select directly, `F` cycles. Every chassis carries articulated
 manipulator arms that fold in and snap out during a swap, with staged
 counter-twisting plates - a proper mechanical transformation, not a scale pop.
 
+**One machine, nine poses.** The craft is a single morphing chassis: core, nose,
+canopy, wheels, two wing pairs, five engines, turret, Light Ram plough, four VTOL
+rotor pods, hydrofoils, ion ring, wake and two articulated arms (22 parts).
+Every mode is a POSE TABLE over those parts, and a transformation physically
+travels each part to its new place with its own stagger - wheels tuck first,
+wings unfold and flare wide mid-morph, engines slide back, the turret locks last.
+Nothing is swapped or cross-faded.
+
 | # | Vehicle | Role | Special (Q) |
 |---|---------|------|-------------|
 | 1 | Lightcycle | ground combat & drift, light-ribbon trail | EMP discharge |

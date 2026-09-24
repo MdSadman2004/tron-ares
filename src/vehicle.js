@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { audio } from './audio.js';
 import { ARES_VEHICLE_SPECS, ARES_VEHICLE_MODES, ARES_BUILDERS } from './ares-vehicles.js';
+import { ChassisRig } from './chassis.js';
 
 /**
  * TRON: ARES — MULTI-MODE TRANSFORMABLE VEHICLE SYSTEM
@@ -373,11 +374,12 @@ export class AresVehicle {
       neonGreen: new THREE.MeshBasicMaterial({ color: 0x39ff88 })
     };
 
-    // Root mesh + per-mode models
+    // Root mesh + the single morphing chassis (all modes are poses of it)
     this.mesh = new THREE.Group();
     this.mesh.rotation.order = 'YXZ';
-    this.models = {};
-    this.buildAllModels();
+    this.rig = new ChassisRig(this);
+    this.riderGroup = this.createRider();
+    this.rig.setRider(this.riderGroup);
     this.scene.add(this.mesh);
 
     // Transformation FX ring
@@ -498,8 +500,15 @@ export class AresVehicle {
     return VEHICLE_SPECS[this.mode];
   }
 
+  /** Compatibility shim: the rig is a single machine, exposed per mode. */
+  get models() {
+    const out = {};
+    for (const m of MODE_ORDER) out[m] = { group: this.rig.root, parts: this.rig.parts };
+    return out;
+  }
+
   get activeModel() {
-    return this.models[this.mode];
+    return { group: this.rig.root, parts: this.rig.parts, modeKey: this.mode };
   }
 
   buildAllModels() {
@@ -529,12 +538,7 @@ export class AresVehicle {
   }
 
   applyModeVisibility() {
-    for (const key of MODE_ORDER) {
-      const m = this.models[key];
-      if (!m) continue;
-      m.group.visible = (key === this.mode);
-      m.group.scale.setScalar(key === this.mode ? 1 : 0.001);
-    }
+    this.rig.setModeImmediate(this.mode);
   }
 
   // ------------------------------------------------------------------
@@ -1198,10 +1202,10 @@ export class AresVehicle {
     this.transform.from = this.mode;
     this.transform.to = mode;
     this.oldMode = this.mode;
+    this.transform.dur = ChassisRig.POSES[mode] && VEHICLE_SPECS[mode].air ? 1.15 : 0.95;
 
-    this.models[mode].group.visible = true;
-    this.models[mode].group.scale.setScalar(0.02);
-    this.models[this.mode].group.visible = true;
+    // every part of the machine travels to its new place — no swap
+    this.rig.startMorph(this.mode, mode, this.transform.dur);
 
     this.fxRing.visible = true;
     this.fxRingMat.opacity = 0.95;
@@ -1230,11 +1234,8 @@ export class AresVehicle {
     this.mode = t.to;
     t.active = false;
 
-    this.models[t.from].group.visible = false;
-    this.models[t.from].group.scale.setScalar(1);
-    this.models[t.from].group.rotation.set(0, 0, 0);
-    this.models[t.to].group.scale.setScalar(1);
-    this.models[t.to].group.rotation.set(0, 0, 0);
+    // lock the new configuration exactly
+    this.rig.setModeImmediate(t.to);
     this.fxRing.visible = false;
     this.fxRingMat.opacity = 0;
 
@@ -1266,36 +1267,20 @@ export class AresVehicle {
       const t = this.transform.t;
       const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-      const from = this.models[this.transform.from].group;
-      const to = this.models[this.transform.to].group;
-      from.scale.setScalar(Math.max(0.02, 1 - ease));
-      to.scale.setScalar(Math.max(0.02, ease));
-      // arms on BOTH chassis fold inward mid-swap
-      const srcParts = this.models[this.transform.from].parts;
-      const dstParts = this.models[this.transform.to].parts;
-      const foldAmt = Math.sin(ease * Math.PI);
-      for (const set of [srcParts, dstParts]) {
-        if (!set || !set.arms) continue;
-        for (const arm of set.arms) {
-          arm.shoulder.rotation.z = arm.side * (-0.20 - foldAmt * 1.05);
-          arm.elbow.rotation.z = arm.side * (0.40 + foldAmt * 0.75);
-        }
-      }
+      // parts travel independently (staggered inside the rig)
+      this.rig.update(delta);
 
       this.fxRing.scale.setScalar(0.6 + ease * 3.4);
       this.fxRingMat.opacity = 0.95 * (1 - ease);
       this.fxRing.rotation.y += delta * 6;
+      this.mesh.scale.setScalar(1 + Math.sin(ease * Math.PI) * 0.06);
 
-      // mechanical staging: arms fold through the swap and both chassis
-      // counter-twist while the plates trade places
-      this.animateArms(t, delta);
-      const twist = Math.sin(ease * Math.PI) * 0.45;
-      from.rotation.y = twist;
-      to.rotation.y = -twist;
-      from.rotation.z = twist * 0.4;
-      to.rotation.z = -twist * 0.4;
-
-      if (t >= 1) this._finishTransform();
+      if (t >= 1) {
+        this.mesh.scale.setScalar(1);
+        this._finishTransform();
+      }
+    } else {
+      this.rig.update(delta);
     }
 
     // --- Boost capacitor --------------------------------------------------
@@ -1428,7 +1413,7 @@ export class AresVehicle {
 
     // --- Special-state visuals ---------------------------------------------------
     const model = this.activeModel;
-    if (model) {
+    if (true) {
       // Phase cloak (LIGHT DRONE): the craft phases out of the grid
       if (this.isCloaked && !this.transform.active) {
         model.group.visible = false;
@@ -1446,14 +1431,13 @@ export class AresVehicle {
         this.shieldBubble.rotation.y += delta * 1.2;
         this.shieldBubbleMat.opacity = 0.16 + Math.sin((this.clock_t || 0) * 3) * 0.06;
       }
-      // Light Ram plough (DART)
-      const plough = model.parts && model.parts.plough;
-      if (plough) plough.visible = this.hasPlough;
-      // Skimmer wake
-      const wake = model.parts && model.parts.wake;
-      if (wake) {
-        const speedRatioW = Math.min(1, Math.abs(this.speed) / spec.maxSpeed);
-        wake.material.opacity = this.isSubmerged ? 0 : Math.max(0, (speedRatioW - 0.25) * 0.7);
+      // Light Ram plough (DART) — folds out of the nose
+      const plough = this.rig.parts.plough;
+      if (plough) {
+        const target = this.hasPlough ? 1 : 0.001;
+        const current = plough.scale.x;
+        const next = THREE.MathUtils.lerp(current, target, delta * (this.hasPlough ? 8 : 5));
+        plough.scale.setScalar(next);
       }
     }
 
@@ -1473,51 +1457,7 @@ export class AresVehicle {
   }
 
   animateActiveModel(delta, spec) {
-    const model = this.activeModel;
-    if (!model) return;
-    const parts = model.parts;
-    const speedRatio = Math.abs(this.speed) / spec.maxSpeed;
-
-    // Wheels spin (ground modes)
-    if (parts.spokes && parts.spokes.length) {
-      const spin = (this.speed / 0.44) * delta;
-      for (const spoke of parts.spokes) spoke.rotation.x -= spin;
-    }
-
-    // Thruster plumes scale with throttle
-    if (parts.plumes && parts.plumes.length) {
-      const base = spec.air ? 0.35 + speedRatio * 0.9 : 0.02 + speedRatio * 0.35;
-      const scale = base + (this.isBoosting ? 0.85 : 0) + (this.overdriveTimer > 0 ? 0.6 : 0);
-      const flicker = 1 + Math.random() * 0.25;
-      for (const plume of parts.plumes) {
-        plume.scale.set(scale * flicker, scale, scale * (1.1 + Math.random() * 0.3));
-      }
-    }
-
-    // VTOL rotors
-    if (parts.rotors && parts.rotors.length) {
-      const spinRate = 14 + speedRatio * 26 + (this.isBoosting ? 14 : 0);
-      for (const { rotor, pod } of parts.rotors) {
-        rotor.rotation.y += spinRate * delta;
-        // Tilt pods forward with speed, down when hovering
-        const tilt = spec.hover ? Math.max(0, (speedRatio - 0.15) * 0.9) : 0.5;
-        pod.rotation.x = THREE.MathUtils.lerp(pod.rotation.x, tilt, delta * 3);
-      }
-    }
-
-    // Light Drone gyro ring
-    if (parts.ring && model && model.group === this.models[VEHICLE_MODES.LIGHTDRONE]?.group) {
-      parts.ring.rotation.x += delta * (6 + speedRatio * 10);
-      parts.ring.rotation.z += delta * 3;
-    }
-
-    // Hyper ion ring spin + colour shift on overdrive
-    if (parts.ring && (!model || model.group !== this.models[VEHICLE_MODES.LIGHTDRONE]?.group)) {
-      parts.ring.rotation.z += delta * (1.5 + speedRatio * 4);
-    }
-    if (parts.underglow) {
-      parts.underglow.material = this.overdriveTimer > 0 ? this.mats.neonAmber : this.mats.neonCyan;
-    }
+    // Handled inside the rig (wheels, plumes, rotors, ring, wake, arms).
   }
 
   // ------------------------------------------------------------------
@@ -1563,16 +1503,8 @@ export class AresVehicle {
     this.rearCooldown = w.rate;
     audio.playRearLaser();
 
-    // Muzzle flash on the turret group if present
-    const model = this.activeModel;
-    if (model && model.group) {
-      model.group.traverse((c) => {
-        if (c.isMesh && c.geometry && c.geometry.type === 'ConeGeometry' && c.visible === false) {
-          c.visible = true;
-          setTimeout(() => { c.visible = false; }, 60);
-        }
-      });
-    }
+    // Muzzle flash on the shared turret
+    this.rig.flashTurret();
 
     return {
       origins: this._muzzleWorlds(this.spec.muzzles.rear),
@@ -1736,7 +1668,9 @@ export class AresVehicle {
     this.phaseHalo.visible = false;
     this.shieldBubble.visible = false;
     if (this.ribbon) this.ribbon.reset();
-    this.applyModeVisibility();
+    this.rig.morph = null;
+    this.rig.setModeImmediate(VEHICLE_MODES.CYCLE);
+    if (this.rig.parts.plough) this.rig.parts.plough.scale.setScalar(0.001);
 
     this.mesh.position.copy(this.position);
     this.mesh.rotation.set(0, 0, 0, 'YXZ');
