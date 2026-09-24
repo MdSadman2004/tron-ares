@@ -77,7 +77,8 @@ class TronAresGame {
       forward: false, backward: false,
       left: false, right: false,
       climb: false, dive: false,
-      boost: false, fireFront: false, fireRear: false, special: false
+      boost: false, fireFront: false, fireRear: false, special: false,
+      beamPrimary: false, beamSecondary: false
     };
 
     // Damage grace (prevents contact-damage stacking from swarms)
@@ -334,6 +335,8 @@ class TronAresGame {
   }
 
   handleGameOver() {
+    this.weaponSystem.clearBeam('primary');
+    this.weaponSystem.clearBeam('secondary');
     this.setState('gameover');
     audio.playExplosion();
     // Full derezz: the whole grid corrupts while the core disintegrates
@@ -441,6 +444,18 @@ class TronAresGame {
           this.inputs.special = true;
           this.fireSpecial();
           break;
+        case 'KeyZ':
+          // PARTICLE LAZER (sustained crimson beam)
+          this.inputs.beamPrimary = true;
+          audio.playBeam('primary');
+          this.hud.showAlert('🔺 PARTICLE LAZER ENGAGED [Z]', true, 1500);
+          break;
+        case 'KeyX':
+          // RIBBON CUTTER (sustained wide beam)
+          this.inputs.beamSecondary = true;
+          audio.playBeam('secondary');
+          this.hud.showAlert('✳ RIBBON CUTTER ENGAGED [X]', false, 1500);
+          break;
         case 'KeyF':
           this.vehicle.cycleMode(1);
           this.announceModeChange();
@@ -466,6 +481,8 @@ class TronAresGame {
         case 'Space': this.inputs.fireFront = false; break;
         case 'KeyE': case 'KeyX': this.inputs.fireRear = false; break;
         case 'KeyQ': this.inputs.special = false; break;
+        case 'KeyZ': this.inputs.beamPrimary = false; break;
+        case 'KeyX': this.inputs.beamSecondary = false; break;
       }
     });
 
@@ -478,10 +495,17 @@ class TronAresGame {
         e.preventDefault();
         this.inputs.fireRear = true;
       }
+      if (e.button === 1) {
+        // middle mouse: Particle Lazer
+        e.preventDefault();
+        this.inputs.beamPrimary = true;
+        audio.playBeam('primary');
+      }
     });
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.inputs.fireFront = false;
       if (e.button === 2) this.inputs.fireRear = false;
+      if (e.button === 1) this.inputs.beamPrimary = false;
     });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -635,12 +659,39 @@ class TronAresGame {
     this.camShake = Math.max(this.camShake, 0.3);
   }
 
+  /** Maintain or tear down the two sustained beams each frame. */
+  updateBeams(delta) {
+    const v = this.vehicle;
+    const wantPrimary = this.inputs.beamPrimary && this.state === 'playing';
+    const wantSecondary = this.inputs.beamSecondary && this.state === 'playing';
+
+    const primarySpec = wantPrimary ? v.getBeamSpec('primary') : null;
+    const secondarySpec = wantSecondary ? v.getBeamSpec('secondary') : null;
+
+    if (primarySpec) {
+      this.weaponSystem.setBeam('primary', primarySpec);
+      if (!this.beamWasFiring || !this.beamWasFiring.primary) this.camShake = Math.max(this.camShake, 0.16);
+    } else {
+      this.weaponSystem.clearBeam('primary');
+    }
+
+    if (secondarySpec) {
+      this.weaponSystem.setBeam('secondary', secondarySpec);
+    } else {
+      this.weaponSystem.clearBeam('secondary');
+    }
+
+    v.updateBeamCharge(delta, !!primarySpec, !!secondarySpec);
+    this.beamWasFiring = { primary: !!primarySpec, secondary: !!secondarySpec };
+  }
+
   /** Central kill handler: scoring, combo, drops. */
   onEnemyKilled(enemy, killType) {
     const spec = ENEMY_SPECS[enemy.type] || { score: 200, name: 'ENEMY' };
     let mult = 1.0;
     if (killType === 'rear') mult = 1.5;
     else if (killType === 'special') mult = 1.3;
+    else if (killType === 'beam') mult = 1.4;
     else if (killType === 'ram') mult = 1.2;
     else if (killType === 'drone_detonate') mult = 0.75;
 
@@ -986,6 +1037,9 @@ class TronAresGame {
       // 2. Held-button weapon fire (cooldowns gate the rate)
       if (this.inputs.fireFront) this.fireForwardLasers();
       if (this.inputs.fireRear) this.fireRearLasers();
+
+      // 2a. Sustained beams (Z / X) — held keys keep the lances alive
+      this.updateBeams(delta);
 
       // 2b. Ramps (launch arcs) and solid world collisions
       this.handleRamps(delta);

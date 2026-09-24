@@ -80,6 +80,20 @@ gunships with 3-round bursts, and the **Recognizer** boss every 4th wave - stomp
 shockwaves, quad barrage and drone deployment. Waves scale health, damage and
 speed.
 
+## Laser beams (separate controls)
+
+Two sustained lances with their own keys and a shared capacitor:
+
+| Key | Weapon | Behaviour |
+|---|---|---|
+| **Z** / **middle-click** | **Particle Lazer** | Crimson lance from the nose guns. 195 dps, cuts through hulls, 380 m reach. |
+| **X** | **Ribbon Cutter** | Amber sweep beam from the wing emitter, angled outward. 120 dps, 300 m. |
+
+Each beam renders as three layers — white-hot core, coloured body, wide halo — and
+terminates on whatever it touches first (enemy, structure or ground), spawning
+impact flashes. The capacitor (100) drains at 42/s (lazer) + 26/s (cutter) and
+regenerates at 17/s; at zero the beams cut out. Beam kills score at 1.4x.
+
 ## Controls
 
 | Key | Action |

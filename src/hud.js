@@ -38,6 +38,8 @@ export class TronHUD {
       specialKey: $('special-key'),
       specialBar: $('special-bar'),
       specialNote: $('special-note'),
+      beamBar: $('beam-charge-bar'),
+      beamBar2: $('beam-charge-bar-2'),
       alertText: $('alert-text'),
       rearThreatWarning: $('rear-threat-warning'),
       artificialHorizon: $('artificial-horizon'),
@@ -183,6 +185,14 @@ export class TronHUD {
       el.specialBar.classList.toggle('ready', pct >= 100);
     }
     if (el.specialNote) el.specialNote.textContent = this.specialNoteFor(spec.id);
+
+    // beam capacitor readouts (both slots share the capacitor)
+    const charge = Math.max(0, Math.min(100, player.beamCharge));
+    if (el.beamBar) el.beamBar.style.width = `${charge}%`;
+    if (el.beamBar2) el.beamBar2.style.width = `${charge}%`;
+    const beamReady = charge > 10;
+    if (el.beamBar) el.beamBar.classList.toggle('low', !beamReady);
+    if (el.beamBar2) el.beamBar2.classList.toggle('low', !beamReady);
 
     // --- Mode selector (only touch DOM when the mode changes)
     const shownMode = player.transform.active ? player.transform.to : player.mode;

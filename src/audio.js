@@ -321,6 +321,32 @@ class TronAudioEngine {
     osc.stop(now + 0.11);
   }
 
+  /**
+   * SUSTAINED BEAM IGNITION — Particle Lazer (deep) / Ribbon Cutter (bright)
+   */
+  playBeam(kind = 'primary') {
+    if (!this.ctx || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    const base = kind === 'primary' ? 140 : 320;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+    osc.type = kind === 'primary' ? 'sawtooth' : 'square';
+    osc.frequency.setValueAtTime(base, now);
+    osc.frequency.linearRampToValueAtTime(base * 1.5, now + 0.25);
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(kind === 'primary' ? 700 : 1600, now);
+    filter.Q.setValueAtTime(2.4, now);
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.linearRampToValueAtTime(0.26, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc.connect(filter); filter.connect(gain); gain.connect(this.sfxGain);
+    osc.start(now); osc.stop(now + 0.62);
+
+    this.playNoiseBurst(0.5, kind === 'primary' ? 300 : 900, 2600, 0.16);
+  }
+
   playNoiseBurst(duration, lowCut, highCut, volume) {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;

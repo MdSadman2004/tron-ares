@@ -20,6 +20,7 @@ export class WeaponSystem {
     this.scene = scene;
     this.projectiles = [];
     this.explosions = [];
+    this.beams = {};          // slot -> active beam
 
     // Shared geometry
     this.boltGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.4, 8);
@@ -218,6 +219,142 @@ export class WeaponSystem {
     }
   }
 
+  // ------------------------------------------------------------------
+  //  SUSTAINED LASER BEAMS  (Particle Lazer / Ribbon Cutter)
+  // ------------------------------------------------------------------
+  /**
+   * Attach (or update) a beam on a control slot. The beam follows the muzzle
+   * it was given, cuts whatever it touches and stops at the first surface.
+   */
+  setBeam(slot, spec) {
+    let beam = this.beams[slot];
+    if (!beam) {
+      beam = {
+        slot,
+        // three layers: hot core, coloured body, wide halo
+        core: new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1, 8), this._mat(0xffffff, 0.95)),
+        body: new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 10), this._mat(spec.color, 0.85)),
+        halo: new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 12), this._mat(spec.color, 0.22)),
+        length: 1,
+        life: 0
+      };
+      for (const layer of [beam.halo, beam.body, beam.core]) {
+        layer.geometry.rotateX(Math.PI / 2);   // lie along +Z
+        layer.renderOrder = 6;
+        this.scene.add(layer);
+      }
+      beam.core.material.blending = THREE.AdditiveBlending;
+      beam.body.material.blending = THREE.AdditiveBlending;
+      beam.halo.material.blending = THREE.AdditiveBlending;
+      this.beams[slot] = beam;
+    }
+    beam.spec = spec;
+    beam.life = 1;
+    this._applyBeam(beam, spec.origin, spec.direction, spec.length || 320, 1);
+  }
+
+  clearBeam(slot) {
+    const beam = this.beams[slot];
+    if (!beam) return;
+    // Mark it dead so both the damage and the visuals stop; updateBeams then
+    // fades it out over ~0.25 s and disposes of the layers.
+    if (beam.spec) beam.spec.active = false;
+  }
+
+  _applyBeam(beam, origin, dir, length, intensity) {
+    const mid = origin.clone().addScaledVector(dir, length / 2);
+    for (const [layer, scale] of [[beam.core, 1], [beam.body, 1.6], [beam.halo, 2.4]]) {
+      layer.position.copy(mid);
+      layer.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+      layer.scale.set(scale, scale, Math.max(0.001, length));
+      layer.material.opacity = (layer === beam.core ? 0.95 : layer === beam.body ? 0.85 : 0.22) * intensity;
+      layer.visible = intensity > 0.02;
+    }
+    beam.origin = origin.clone();
+    beam.dir = dir.clone();
+    beam.length = length;
+  }
+
+  /** Beams damage continuously; this runs every frame. */
+  updateBeams(delta, enemies, playerVehicle, onEnemyKilled, onPlayerDamaged) {
+    for (const slot of Object.keys(this.beams)) {
+      const beam = this.beams[slot];
+      if (!beam || !beam.spec) continue;
+
+      if (!beam.spec.active) {
+        beam.life -= delta * 4;
+        if (beam.life <= 0) {
+          for (const l of [beam.core, beam.body, beam.halo]) l.visible = false;
+          delete this.beams[slot];
+          continue;
+        }
+      }
+
+      const flicker = 0.75 + Math.random() * 0.35;
+      const intensity = Math.max(0, Math.min(1, beam.life)) * flicker;
+      const spec = beam.spec;
+      const origin = spec.origin;
+      const dir = spec.direction;
+
+      // --- trace: find the nearest thing the beam touches -----------------
+      let hitDist = spec.length || 320;
+      let hitEnemy = null;
+      const isEnemy = !!spec.isEnemy;
+
+      if (!isEnemy) {
+        for (const enemy of enemies) {
+          const toE = new THREE.Vector3().subVectors(enemy.position, origin);
+          const along = toE.dot(dir);
+          if (along < 0 || along > hitDist) continue;
+          const closest = origin.clone().addScaledVector(dir, along);
+          const off = closest.distanceTo(enemy.position);
+          if (off < enemy.hitRadius + 1.2) {
+            hitDist = along;
+            hitEnemy = enemy;
+          }
+        }
+      } else if (playerVehicle) {
+        const toP = new THREE.Vector3().subVectors(playerVehicle.position, origin);
+        const along = toP.dot(dir);
+        if (along > 0) {
+          const closest = origin.clone().addScaledVector(dir, along);
+          if (closest.distanceTo(playerVehicle.position) < (playerVehicle.spec.collisionRadius + 1.2)) {
+            hitDist = along;
+          }
+        }
+      }
+
+      // ground stop
+      if (dir.y < -0.001) {
+        const groundDist = (origin.y - 0.4) / -dir.y;
+        if (groundDist > 0 && groundDist < hitDist) hitDist = groundDist;
+      }
+
+      this._applyBeam(beam, origin, dir, hitDist, intensity);
+
+      // --- damage ---------------------------------------------------------
+      if (spec.active && hitDist < (spec.length || 320)) {
+        const impact = origin.clone().addScaledVector(dir, hitDist);
+        if (hitEnemy) {
+          const killed = hitEnemy.takeDamage((spec.dps || 150) * delta);
+          if (Math.random() < 0.35) this.spawnHitFlash(impact, spec.color);
+          if (killed) {
+            for (let i = enemies.length - 1; i >= 0; i--) {
+              if (enemies[i] === hitEnemy) {
+                this._killEnemy(hitEnemy, 'beam', enemies, i, onEnemyKilled);
+                break;
+              }
+            }
+          }
+        } else {
+          if (Math.random() < 0.3) this.spawnHitFlash(impact, spec.color);
+        }
+      }
+
+      // beam hum: light audio cues handled by the vehicle
+    }
+  }
+
   /** Expanding shockwave ring that damages once per entity. */
   spawnShockwave(origin, maxRadius = 60, damage = 80, isEnemy = false, color = null) {
     const ringMat = new THREE.MeshBasicMaterial({
@@ -316,6 +453,9 @@ export class WeaponSystem {
   // ------------------------------------------------------------------
   update(delta, enemies, playerVehicle, onEnemyKilled, onPlayerDamaged) {
     const playerRadius = (playerVehicle.spec ? playerVehicle.spec.collisionRadius : 2.0) + 1.0;
+
+    // sustained beams first (they set up hit flashes the bolts can reuse)
+    this.updateBeams(delta, enemies, playerVehicle, onEnemyKilled, onPlayerDamaged);
 
     // ---------------- Projectiles ----------------
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -531,6 +671,11 @@ export class WeaponSystem {
   }
 
   clear() {
+    for (const slot of Object.keys(this.beams)) {
+      const b = this.beams[slot];
+      for (const l of [b.core, b.body, b.halo]) this.scene.remove(l);
+      delete this.beams[slot];
+    }
     for (const p of this.projectiles) this.scene.remove(p.mesh);
     this.projectiles = [];
     for (const exp of this.explosions) this._cleanupExplosion(exp);

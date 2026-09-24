@@ -334,6 +334,10 @@ export class AresVehicle {
     this.boostCapacitor = 100;
     this.isBoosting = false;
 
+    // Beam capacitor (Particle Lazer / Ribbon Cutter)
+    this.beamCharge = 100;
+    this.beamFiring = { primary: false, secondary: false };
+
     // Weapon cooldowns
     this.frontCooldown = 0;
     this.rearCooldown = 0;
@@ -1473,6 +1477,59 @@ export class AresVehicle {
     return !this.transform.active && !this.isSubmerged;
   }
 
+  /**
+   * Sustained beam spec for a control slot. Mirrors Tron: Ares — the
+   * Particle Lazer is the heavy crimson lance, the Ribbon Cutter is the wide
+   * white-hot blade that sweeps from the wing emitters.
+   */
+  getBeamSpec(slot) {
+    if (!this.canFire || this.beamCharge <= 2) return null;
+    const mz = this.spec.muzzles;
+    const fwd = this.getForwardDirection();
+
+    if (slot === 'primary') {
+      const origins = this._muzzleWorlds(mz.front);
+      return {
+        active: true,
+        origin: origins[0] || this.position.clone(),
+        direction: fwd,
+        length: 380,
+        dps: 195,
+        color: 0xff0838
+      };
+    }
+
+    // Mounted on the wing emitter (mode-aware: the wing travels with the
+    // morph), angled a few degrees outward so it reads as a wide sweep and
+    // never hides inside the nose lance.
+    const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+    const wing = this.rig.parts.wingUR || this.rig.parts.wingUL;
+    const span = Math.max(0.7, Math.abs(wing ? wing.scale.x : 1) * 2.3);
+    const origin = this.position.clone()
+      .addScaledVector(right, span)
+      .addScaledVector(fwd, 0.8);
+    origin.y += this.spec.air ? 0.4 : 0.75;
+    const direction = fwd.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -0.085).normalize();
+    return {
+      active: true,
+      origin,
+      direction,
+      length: 300,
+      dps: 120,
+      color: 0xff7a00
+    };
+  }
+
+  /** Drain / regenerate the beam capacitor. */
+  updateBeamCharge(delta, firingPrimary, firingSecondary) {
+    const drain = (firingPrimary ? 42 : 0) + (firingSecondary ? 26 : 0);
+    if (drain > 0) {
+      this.beamCharge = Math.max(0, this.beamCharge - drain * delta);
+    } else {
+      this.beamCharge = Math.min(100, this.beamCharge + 17 * delta);
+    }
+  }
+
   /** Ramp launch: gives ground vehicles a real jump arc. */
   applyJump(force = 26) {
     if (this.spec.air && !this.spec.hover) return;
@@ -1665,6 +1722,8 @@ export class AresVehicle {
     this.cloakTimer = 0;
     this.jumpVy = 0;
     this.airborne = false;
+    this.beamCharge = 100;
+    this.beamFiring = { primary: false, secondary: false };
     this.phaseHalo.visible = false;
     this.shieldBubble.visible = false;
     if (this.ribbon) this.ribbon.reset();

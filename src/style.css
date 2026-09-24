@@ -1545,3 +1545,16 @@ html, body {
   max-height: 88vh;
   overflow-y: auto;
 }
+
+/* ---------- Laser beam capacitors ---------- */
+.beam-fill {
+  background: linear-gradient(90deg, #ff0838, #ff8a66) !important;
+  box-shadow: 0 0 8px rgba(255, 8, 56, 0.6);
+}
+.beam-fill-2 {
+  background: linear-gradient(90deg, #ff7a00, #ffd08a) !important;
+  box-shadow: 0 0 8px rgba(255, 122, 0, 0.6);
+}
+.beam-slot .weapon-note {
+  color: rgba(255, 160, 120, 0.8);
+}
