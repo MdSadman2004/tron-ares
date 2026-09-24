@@ -1,4 +1,6 @@
-# TRON: ARES - PROTOCOL OVERRIDE
+import io, subprocess
+
+readme = """# TRON: ARES - PROTOCOL OVERRIDE
 
 A 9-vehicle transformable grid combat simulator built with Three.js + Vite.
 Playable in any desktop browser with keyboard + mouse.
@@ -88,3 +90,17 @@ speed.
 | `ESC` / `P` | Pause |
 
 Scenarios: SURVIVAL COMBAT, HIGHWAY CHASE, FREE FLIGHT ROAM.
+"""
+
+io.open('E:/Tron ares/README.md', 'w', encoding='utf-8').write(readme)
+
+def run(cmd):
+    p = subprocess.run(cmd, cwd='E:/Tron ares', shell=True, capture_output=True, text=True)
+    print('$', cmd[:70], '->', p.returncode, ((p.stdout or '') + (p.stderr or '')).strip()[:200])
+    return p.returncode
+
+run('git rm --cached _git_push.py')          # remove the stray helper from tracking
+run('git add -A')
+run('git commit -m "Add glitch/derezz FX pass, articulated transformer arms, 6x6 world with 9 sector palettes that re-skin on crossing"')
+run('git push origin main')
+print(subprocess.run('git log --oneline -3', cwd='E:/Tron ares', shell=True, capture_output=True, text=True).stdout)

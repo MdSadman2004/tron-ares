@@ -426,8 +426,72 @@ export class AresVehicle {
   _registerModel(mode, group, parts) {
     group.visible = false;
     this.mesh.add(group);
+
+    // Every chassis carries a pair of articulated manipulator arms that fold
+    // in and snap out during a transformation (Transformer-style staging).
+    const ARM_MOUNTS = {
+      CYCLE: [0.62, 0.72, 0.30],
+      JET: [0.92, 0.12, 0.30],
+      HEAVY: [1.40, 0.30, 0.55],
+      VTOL: [1.00, 0.42, 0.20],
+      HYPER: [1.20, 0.42, -0.15],
+      JUMPJET: [0.85, 0.10, 0.25],
+      DART: [1.85, 0.95, 0.60],
+      SKIMMER: [1.05, 0.70, 0.35],
+      LIGHTDRONE: [0.95, 0.15, 0.15]
+    };
+    const mount = ARM_MOUNTS[mode] || [1.0, 0.4, 0.3];
+    parts.arms = [];
+    for (const side of [-1, 1]) {
+      const shoulder = new THREE.Group();
+      shoulder.position.set(side * mount[0], mount[1], mount[2]);
+
+      const upper = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.20, 0.20), this.mats.plate);
+      upper.position.x = side * 0.26;
+      shoulder.add(upper);
+
+      const elbow = new THREE.Group();
+      elbow.position.x = side * 0.52;
+      shoulder.add(elbow);
+
+      const forearm = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.15, 0.15), this.mats.carbon);
+      forearm.position.x = side * 0.34;
+      elbow.add(forearm);
+
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.05), this.mats.neonRed);
+      edge.position.set(side * 0.36, 0.11, 0);
+      elbow.add(edge);
+
+      const emitter = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.16), this.mats.neonCyan);
+      emitter.position.x = side * 0.70;
+      elbow.add(emitter);
+
+      group.add(shoulder);
+      parts.arms.push({ shoulder, elbow, side, restZ: 0, restElbow: 0 });
+    }
+
     this.models[mode] = { group, parts };
     return this.models[mode];
+  }
+
+  /** Staged deploy/retract of the manipulator arms during a transformation. */
+  animateArms(progress, delta) {
+    const model = this.activeModel;
+    if (!model || !model.parts || !model.parts.arms) return;
+    for (let i = 0; i < model.parts.arms.length; i++) {
+      const arm = model.parts.arms[i];
+      // stagger each arm slightly for a mechanical, sequenced feel
+      const local = THREE.MathUtils.clamp((progress - i * 0.07) / (1 - i * 0.07), 0, 1);
+      // fold in at mid-transition, snap out at the end (double action)
+      const fold = Math.sin(local * Math.PI);
+      const deploy = 1 - fold * 0.95;
+
+      const shoulderTarget = arm.side * (-1.35 + deploy * 1.15);   // tucked → out
+      const elbowTarget = arm.side * (1.25 - deploy * 0.85);       // folded → extended
+      arm.shoulder.rotation.z = THREE.MathUtils.lerp(arm.shoulder.rotation.z, shoulderTarget, delta * 14);
+      arm.elbow.rotation.z = THREE.MathUtils.lerp(arm.elbow.rotation.z, elbowTarget, delta * 14);
+      arm.shoulder.rotation.y = THREE.MathUtils.lerp(arm.shoulder.rotation.y, -arm.side * 0.35 * deploy, delta * 12);
+    }
   }
 
   get spec() {
@@ -1168,7 +1232,9 @@ export class AresVehicle {
 
     this.models[t.from].group.visible = false;
     this.models[t.from].group.scale.setScalar(1);
+    this.models[t.from].group.rotation.set(0, 0, 0);
     this.models[t.to].group.scale.setScalar(1);
+    this.models[t.to].group.rotation.set(0, 0, 0);
     this.fxRing.visible = false;
     this.fxRingMat.opacity = 0;
 
@@ -1204,10 +1270,30 @@ export class AresVehicle {
       const to = this.models[this.transform.to].group;
       from.scale.setScalar(Math.max(0.02, 1 - ease));
       to.scale.setScalar(Math.max(0.02, ease));
+      // arms on BOTH chassis fold inward mid-swap
+      const srcParts = this.models[this.transform.from].parts;
+      const dstParts = this.models[this.transform.to].parts;
+      const foldAmt = Math.sin(ease * Math.PI);
+      for (const set of [srcParts, dstParts]) {
+        if (!set || !set.arms) continue;
+        for (const arm of set.arms) {
+          arm.shoulder.rotation.z = arm.side * (-0.20 - foldAmt * 1.05);
+          arm.elbow.rotation.z = arm.side * (0.40 + foldAmt * 0.75);
+        }
+      }
 
       this.fxRing.scale.setScalar(0.6 + ease * 3.4);
       this.fxRingMat.opacity = 0.95 * (1 - ease);
       this.fxRing.rotation.y += delta * 6;
+
+      // mechanical staging: arms fold through the swap and both chassis
+      // counter-twist while the plates trade places
+      this.animateArms(t, delta);
+      const twist = Math.sin(ease * Math.PI) * 0.45;
+      from.rotation.y = twist;
+      to.rotation.y = -twist;
+      from.rotation.z = twist * 0.4;
+      to.rotation.z = -twist * 0.4;
 
       if (t >= 1) this._finishTransform();
     }
@@ -1324,6 +1410,21 @@ export class AresVehicle {
     this.mesh.position.copy(this.position);
     this.mesh.rotation.set(this.pitch, this.yaw, this.roll, 'YXZ');
     this.mesh.updateMatrixWorld(true);
+
+    // Arms breathe with the chassis (idle sway) and deploy during transforms
+    const armModel = this.activeModel;
+    if (armModel && armModel.parts && armModel.parts.arms) {
+      const idle = Math.sin((this.clock_t || 0) * 1.4) * 0.05;
+      for (const arm of armModel.parts.arms) {
+        const base = arm.side * (-0.20 + idle * arm.side);
+        const baseElbow = arm.side * 0.40;
+        if (!this.transform.active) {
+          arm.shoulder.rotation.z = THREE.MathUtils.lerp(arm.shoulder.rotation.z, base, delta * 4);
+          arm.elbow.rotation.z = THREE.MathUtils.lerp(arm.elbow.rotation.z, baseElbow, delta * 4);
+        }
+      }
+      this.clock_t = (this.clock_t || 0) + delta;
+    }
 
     // --- Special-state visuals ---------------------------------------------------
     const model = this.activeModel;

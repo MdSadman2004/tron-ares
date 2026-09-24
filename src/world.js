@@ -185,7 +185,8 @@ export class TronWorld {
   // ==================================================================
   initLighting() {
     this.scene.add(new THREE.AmbientLight(0x0a1020, 1.2));
-    this.scene.add(new THREE.HemisphereLight(0x5a0a18, 0x08000a, 0.85));
+    this.hemiLight = new THREE.HemisphereLight(0x5a0a18, 0x08000a, 0.85);
+    this.scene.add(this.hemiLight);
 
     const dirLight = new THREE.DirectionalLight(0x00f0ff, 1.5);
     dirLight.position.set(100, 150, 50);
@@ -281,7 +282,7 @@ export class TronWorld {
     const HALF_W = 48;
 
     // The grid the districts sit on means their boundaries fall on ±930 etc.
-    const lanes = [-930, 930];
+    const lanes = [-1240, -620, 620, 1240];
     for (const z of lanes) {
       this._buildRunway({ minX: -2260, maxX: 2260, minZ: z - HALF_W, maxZ: z + HALF_W, axis: 'x' });
     }
@@ -291,8 +292,8 @@ export class TronWorld {
     // Radial lanes from the arena rim out to the map edge (the arena itself
     // stays untouched): open runway -> obstacle district -> runway -> ...
     for (const dir of [-1, 1]) {
-      this._buildRunway({ minX: dir * 310, maxX: dir * 2260, minZ: -HALF_W, maxZ: HALF_W, axis: 'x' });
-      this._buildRunway({ minX: -HALF_W, maxX: HALF_W, minZ: dir * 310, maxZ: dir * 2260, axis: 'z' });
+      this._buildRunway({ minX: dir * 200, maxX: dir * 2210, minZ: -HALF_W, maxZ: HALF_W, axis: 'x' });
+      this._buildRunway({ minX: -HALF_W, maxX: HALF_W, minZ: dir * 200, maxZ: dir * 2210, axis: 'z' });
     }
   }
 
@@ -511,16 +512,29 @@ export class TronWorld {
   //  DISTRICTS
   // ==================================================================
   districtCenter(dx, dz) {
-    return { x: (dx - 1.5) * DISTRICT, z: (dz - 1.5) * DISTRICT };
+    return { x: (dx - 2.5) * DISTRICT, z: (dz - 2.5) * DISTRICT };
+  }
+
+  /** 3x3 sector grid: each sector owns 2x2 districts and its own palette. */
+  sectorFor(pos) {
+    const half = DISTRICT;                     // 2 districts per sector = 2*620
+    const sx = Math.floor((pos.x + half * 3) / (DISTRICT * 2));
+    const sz = Math.floor((pos.z + half * 3) / (DISTRICT * 2));
+    return Math.max(0, Math.min(2, sx)) + ',' + Math.max(0, Math.min(2, sz));
   }
 
   initDistricts() {
     // 4x4 layout, centre-ward districts are the reference arena
+    // 6x6 district grid — the world is much larger than one screen's worth of
+    // city, and every 2x2 block of districts belongs to a SECTOR with its own
+    // palette. Crossing a sector boundary shifts the sky, fog and ground glow.
     const layout = [
-      [4, 2, 3, 9],    // canyon / data farm / monoliths / solar
-      [1, 0, 6, 5],    // megacity / ARENA / sky pillars / plant
-      [7, 10, 11, 8],  // sea of sim / plaza / ruins / highway
-      [12, 12, 3, 12]  // packed obstacle fields on the outer ring
+      [12, 3, 9, 5, 12, 3],
+      [1, 1, 2, 6, 9, 12],
+      [4, 1, 0, 1, 2, 7],
+      [11, 10, 1, 1, 5, 11],
+      [12, 9, 2, 6, 3, 12],
+      [3, 12, 11, 7, 10, 12]
     ];
 
     for (let dz = 0; dz < 4; dz++) {
@@ -1227,6 +1241,70 @@ export class TronWorld {
     this.fallStreaks.frustumCulled = false;
     this.scene.add(this.fallStreaks);
     this.streakPulse = 0;
+  }
+
+  /** Sector palettes — the world re-skins itself as you cross into a new region. */
+  static SECTORS = {
+    '1,1': { name: 'CORE GRID', tagline: 'ARES COMMAND SECTOR', fog: 0x0a0206, sky: 0xffffff, glow: 0xffffff, hemi: 0x5a0a18, accent: 0xff0838 },
+    '0,0': { name: 'CYAN SUBURB', tagline: 'CIVILIAN DATA DISTRICT', fog: 0x02080c, sky: 0x9fe8ff, glow: 0x9fe8ff, hemi: 0x0a2a33, accent: 0x00f0ff },
+    '1,0': { name: 'AMBER WORKS', tagline: 'PROCESSING & FABRICATION', fog: 0x0c0700, sky: 0xffd9a0, glow: 0xffc978, hemi: 0x33220a, accent: 0xffaa00 },
+    '2,0': { name: 'VIOLET DEEP', tagline: 'ARCHIVE SPRAWL', fog: 0x07030c, sky: 0xd2a8ff, glow: 0xc79bff, hemi: 0x2a0a33, accent: 0xcc00ff },
+    '0,1': { name: 'ICE GRID', tagline: 'COLD STORAGE FARM', fog: 0x030a10, sky: 0xbfe9ff, glow: 0xa8dcff, hemi: 0x0a2233, accent: 0x7fd6ff },
+    '2,1': { name: 'EMBER ZONE', tagline: 'MCP FORGE', fog: 0x100200, sky: 0xffb080, glow: 0xff8a50, hemi: 0x3a0f05, accent: 0xff4a00 },
+    '0,2': { name: 'GREEN DATAFOREST', tagline: 'GROWTH SUBSTRATE', fog: 0x02100a, sky: 0xa8ffc8, glow: 0x8effb8, hemi: 0x0a3320, accent: 0x39ff88 },
+    '1,2': { name: 'RUST FLATS', tagline: 'DERELICT EXPANSE', fog: 0x120702, sky: 0xffc8a0, glow: 0xffa070, hemi: 0x331a08, accent: 0xff7a00 },
+    '2,2': { name: 'THE VOID', tagline: 'UNINDEXED SPACE', fog: 0x020204, sky: 0xd8d8ff, glow: 0xc0c0ff, hemi: 0x101018, accent: 0xffffff }
+  };
+
+  /** Detect sector crossings and blend the environment into the new palette. */
+  updateRegion(delta, playerPos) {
+    if (!this._sectorKey) {
+      this._sectorKey = this.sectorFor(playerPos);
+      this._blend = 1;
+      this._from = TronWorld.SECTORS[this._sectorKey];
+      this._to = this._from;
+    }
+
+    const key = this.sectorFor(playerPos);
+    let changed = null;
+    if (key !== this._sectorKey) {
+      const prev = this._sectorKey;
+      this._sectorKey = key;
+      this._from = this._blendCurrent(this._from, this._to, this._blend);
+      this._to = TronWorld.SECTORS[key] || TronWorld.SECTORS['1,1'];
+      this._blend = 0;
+      changed = { name: 'ENTERING ' + this._to.name, tagline: this._to.tagline, from: prev, to: key };
+    }
+
+    if (this._blend < 1) {
+      this._blend = Math.min(1, this._blend + delta / 2.2);
+      this.applyPalette(this._blendCurrent(this._from, this._to, this._blend));
+    }
+
+    return changed;
+  }
+
+  _blendCurrent(a, b, t) {
+    const lerpHex = (x, y) => {
+      const c1 = new THREE.Color(x), c2 = new THREE.Color(y);
+      return c1.lerp(c2, t).getHex();
+    };
+    return {
+      name: b.name, tagline: b.tagline,
+      fog: lerpHex(a.fog, b.fog),
+      sky: lerpHex(a.sky, b.sky),
+      glow: lerpHex(a.glow, b.glow),
+      hemi: lerpHex(a.hemi, b.hemi),
+      accent: b.accent
+    };
+  }
+
+  applyPalette(pal) {
+    if (this.scene.fog) this.scene.fog.color.setHex(pal.fog);
+    if (this.skyDome) this.skyDome.material.color.setHex(pal.sky);
+    if (this.groundGlow) this.groundGlow.material.color.setHex(pal.glow);
+    if (this.hemiLight) this.hemiLight.color.setHex(pal.hemi);
+    this.currentAccent = pal.accent;
   }
 
   updateStreaks(delta, playerPos) {

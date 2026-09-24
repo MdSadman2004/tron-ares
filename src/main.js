@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { GlitchShader, GlitchFX } from './glitch.js';
 
 import { AresVehicle, VEHICLE_MODES, VEHICLE_SPECS, MODE_ORDER } from './vehicle.js';
 import { WeaponSystem } from './weapons.js';
@@ -146,6 +148,7 @@ class TronAresGame {
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(width, height);
       if (this.composer) this.composer.setSize(width, height);
+      if (this.glitchFX) this.glitchFX.setResolution(width, height);
     });
 
     // Robustness: survive GPU context loss
@@ -168,6 +171,12 @@ class TronAresGame {
       1.15, 0.5, 0.34
     );
     this.composer.addPass(this.bloomPass);
+
+    // Grid corruption pass (datamosh / derezz) — always last in the chain
+    this.glitchPass = new ShaderPass(GlitchShader);
+    this.glitchPass.uniforms.uResolution.value.set(window.innerWidth, window.innerHeight);
+    this.composer.addPass(this.glitchPass);
+    this.glitchFX = new GlitchFX(this.glitchPass);
   }
 
   initWorld() {
@@ -327,6 +336,9 @@ class TronAresGame {
   handleGameOver() {
     this.setState('gameover');
     audio.playExplosion();
+    // Full derezz: the whole grid corrupts while the core disintegrates
+    if (this.glitchFX) this.glitchFX.trigger(1.0, 3.4);
+    this.deathGlitch = 1.6;
     this.hud.showAlert('CRITICAL INTEGRITY FAILURE // ARES CORE DEREZZED', true);
     this.saveBestScore(this.gameStats.score);
 
@@ -679,6 +691,10 @@ class TronAresGame {
     this.hud.flashDamage();
     this.camShake = Math.max(this.camShake, 0.35);
 
+    // hull damage tears the render
+    const hurt = Math.min(1, dmg / 45);
+    if (this.glitchFX) this.glitchFX.trigger(0.35 + hurt * 0.4, 0.28 + hurt * 0.3);
+
     if (this.gameStats.playerShield <= 0) this.handleGameOver();
   }
 
@@ -776,6 +792,7 @@ class TronAresGame {
         this.camShake = Math.max(this.camShake, 0.5);
         this.weaponSystem.spawnExplosion(new THREE.Vector3(px, py + 0.6, pz), 0xffaa00, 0.7);
         this.applyPlayerDamage(Math.min(40, impact * 0.22), null, 'crash');
+        if (this.glitchFX) this.glitchFX.trigger(0.5, 0.3);
         this.hud.showAlert('⚠ HULL IMPACT // OBSTRUCTION HIT', true, 1500);
       }
       break;   // one resolution per frame is enough; the next frame handles the rest
@@ -1030,6 +1047,15 @@ class TronAresGame {
       this.updateCamera(delta);
       this.hud.update(this.vehicle, this.gameStats, enemyInfo);
 
+      // 8b. World region (sector) transitions + glitch FX
+      const region = this.world.updateRegion(delta, this.vehicle.position);
+      if (region && region.changed) {
+        this.hud.showWaveBanner(region.name, region.tagline);
+        if (this.glitchFX) this.glitchFX.trigger(0.85, 0.7);
+        audio.playEMP();
+      }
+      if (this.glitchFX) this.glitchFX.update(delta);
+
       // 9. Performance governor
       this.updatePerformance(delta);
       this.perf.hudTimer -= delta;
@@ -1039,10 +1065,18 @@ class TronAresGame {
       }
     } else if (this.state === 'paused' || this.state === 'gameover') {
       // Frozen simulation — keep rendering the last frame + hud state
+      if (this.glitchFX) {
+        if (this.deathGlitch > 0) {
+          this.deathGlitch -= delta;
+          this.glitchFX.trigger(0.75 + 0.25 * Math.random(), 0.25);
+        }
+        this.glitchFX.update(delta);
+      }
       this.updateCamera(delta);
       if (this.hud) this.hud.update(this.vehicle, this.gameStats, { pursuerBehindDetected: false, activeCount: 0, boss: null });
     } else {
       // Menu: cinematic orbit around the idle vehicle
+      if (this.glitchFX) this.glitchFX.update(delta);
       const t = this.clock.getElapsedTime();
       this.vehicle.update(delta, { forward: false, backward: false, left: false, right: false, climb: false, dive: false, boost: false });
       this.world.update(delta, this.vehicle.position);
