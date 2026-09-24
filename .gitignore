@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.vite/
+*.log
+_screenshots/
+_backup/
