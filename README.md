@@ -130,7 +130,24 @@ Asphalt-style touch driving: the machine flies itself, you just tap.
 Autopilot navigates the grid, avoids structures, holds altitude in flight modes
 and keeps the map edge from ending your run.
 
-## Play Store release
+## Distribution
+
+**Live now — no store, no fees:** https://github.com/MdSadman20040812/grid-protocol
+(binary-only public repo; the source stays private in this repository)
+
+```bash
+adb install -r D:/Outputs/GridProtocol-Distribution/GridProtocol-1.0.1.apk
+```
+
+Users install that APK directly, or add the repo URL to Obtainium for automatic
+updates. Publishing a new build = new tag + attach the APK:
+
+```bash
+bash android/tools/release.sh          # rebuilds and re-signs the AAB/APK
+# then create a GitHub release on the public repo and attach the APK
+```
+
+## Play Store release (optional, $25)
 
 ```bash
 bash android/tools/release.sh     # keystore (first run) + signed .aab + verification
