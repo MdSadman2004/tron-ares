@@ -132,7 +132,7 @@ and keeps the map edge from ending your run.
 
 ## Distribution
 
-**Live now — no store, no fees:** https://github.com/MdSadman20040812/grid-protocol
+**Live now — no store, no fees:** https://github.com/MdSadman2004/grid-protocol
 (binary-only public repo; the source stays private in this repository)
 
 ```bash
