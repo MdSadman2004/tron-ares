@@ -62,8 +62,14 @@ body.is-touch #modal-screen .modal-button-row {
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: 12px; z-index: 60; width: auto; background: none; padding: 0;
 }
-body.is-touch #modal-screen .modal-card { padding-bottom: 86px; }
-body.is-touch #modal-screen .modal-footer-notes { padding-bottom: 4px; }
+body.is-touch #modal-screen .modal-card { padding-bottom: 120px; }
+/* The pinned CTA must not sit on top of the footer text on a short screen */
+body.is-touch #modal-screen .modal-footer-notes {
+  flex-direction: column; align-items: center; gap: 3px;
+  font-size: 9px; max-width: 100%; padding: 0 8px 6px;
+  white-space: normal; overflow-wrap: anywhere; text-align: center;
+}
+body.is-touch #modal-screen .keybind-grid { font-size: 10px; }
 
 #tc-layer.tc-off { display: none; }
 .tc-hide { display: none !important; }
@@ -100,6 +106,8 @@ body.is-touch #modal-screen .modal-footer-notes { padding-bottom: 4px; }
   border: 2px solid rgba(255, 60, 100, 0.9);
   box-shadow: 0 0 18px rgba(255, 30, 70, 0.55); pointer-events: none;
 }
+#tc-laneL { left: 186px; bottom: 190px; width: 74px; height: 46px; font-size: 11px; border-radius: 10px; }
+#tc-laneR { left: 268px; bottom: 190px; width: 74px; height: 46px; font-size: 11px; border-radius: 10px; }
 #tc-climb { left: 186px; bottom: 116px; width: 62px; height: 62px; font-size: 20px; }
 #tc-dive  { left: 186px; bottom: 44px;  width: 62px; height: 62px; font-size: 20px; }
 #tc-fire   { right: 26px; bottom: 28px;  width: 104px; height: 104px; font-size: 16px;
@@ -119,6 +127,10 @@ body.is-touch #modal-screen .modal-footer-notes { padding-bottom: 4px; }
   text-shadow: 0 0 8px rgba(255, 40, 80, 0.8);
 }
 #tc-taprow .tc-tap:active { background: rgba(255, 30, 70, 0.42); }
+#tc-taprow .tc-tap.on {
+  background: rgba(0, 240, 255, 0.2); border-color: rgba(0, 240, 255, 0.8);
+  color: #bff6ff; text-shadow: 0 0 8px rgba(0, 220, 255, 0.9);
+}
 #tc-hint {
   position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
   font-size: 12px; color: rgba(255, 180, 190, 0.75); letter-spacing: 0.08em;
@@ -145,6 +157,8 @@ export function installTouchControls(game) {
   layer.id = 'tc-layer';
   layer.innerHTML = `
     <div id="tc-stick" class="tc-pad"><div id="tc-knob"></div></div>
+    <div id="tc-laneL" class="tc-btn tc-lane">◀ LANE</div>
+    <div id="tc-laneR" class="tc-btn tc-lane">LANE ▶</div>
     <div id="tc-climb" class="tc-btn">▲</div>
     <div id="tc-dive" class="tc-btn">▼</div>
     <div id="tc-fire" class="tc-btn">FIRE</div>
@@ -155,6 +169,8 @@ export function installTouchControls(game) {
       <div class="tc-tap" data-tap="special">Q · SPEC</div>
       <div class="tc-tap" data-tap="transform">F · MORPH</div>
       <div class="tc-tap" data-tap="camera">C · CAM</div>
+      <div class="tc-tap on" data-tap="drive">◈ DRIVE</div>
+      <div class="tc-tap on" data-tap="aim">◈ AIM</div>
       <div class="tc-tap" data-tap="pause">II</div>
     </div>
     <div id="tc-hint">TOUCH CONTROLS ONLINE — LANDSCAPE RECOMMENDED</div>
@@ -182,13 +198,33 @@ export function installTouchControls(game) {
     }
   }
 
+  // Auto-throttle: nobody wants to hold a stick forward for a whole run, so the
+  // craft cruises by itself and the stick steers; pull down to brake.
+  let autoThrottle = true;
+  function applyAutoThrottle(brake) {
+    if (autoThrottle) {
+      setKey(KEYS.forward, !brake);
+      setKey(KEYS.backward, brake);
+    }
+  }
+
   function applyStick(x, y) {
-    const dead = 0.22;
+    const dead = 0.18;
     const fwd = -y;                        // screen up = throttle
-    setKey(KEYS.forward, fwd > dead);
-    setKey(KEYS.backward, fwd < -dead);
-    setKey(KEYS.left, x < -dead);
-    setKey(KEYS.right, x > dead);
+    // finer near centre: shape the magnitude, keep the sign
+    const shaped = Math.sign(x) * Math.pow(Math.abs(x), 1.35);
+    if (autoThrottle) {
+      applyAutoThrottle(fwd < -dead);
+    } else {
+      setKey(KEYS.forward, fwd > dead);
+      setKey(KEYS.backward, fwd < -dead);
+    }
+    setKey(KEYS.left, shaped < -dead);
+    setKey(KEYS.right, shaped > dead);
+  }
+
+  function buzz(ms) {
+    if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) { /* ignore */ } }
   }
 
   function stickMove(e) {
@@ -206,11 +242,15 @@ export function installTouchControls(game) {
     stickPointer = e.pointerId;
     stick.classList.add('active');
     stick.setPointerCapture(e.pointerId);
+    if (game.autoDrive) game.autoDrive.notifyManual();
     stickMove(e);
     e.preventDefault();
   });
   stick.addEventListener('pointermove', (e) => {
     if (e.pointerId !== stickPointer) return;
+    if (Math.abs(e.clientX - stick.getBoundingClientRect().left - 74) > 26 && game.autoDrive) {
+      game.autoDrive.notifyManual(0.9);
+    }
     stickMove(e);
     e.preventDefault();
   });
@@ -241,6 +281,7 @@ export function installTouchControls(game) {
       el.classList.add('active');
       el.setPointerCapture(e.pointerId);
       setKey(code, true);
+      buzz(14);
       e.preventDefault();
     });
     const up = (e) => {
@@ -252,13 +293,42 @@ export function installTouchControls(game) {
     el.addEventListener('pointercancel', up);
   }
 
+  // ------------------------------------------------------------ lane taps
+  for (const [sel, dir] of [['#tc-laneL', -1], ['#tc-laneR', 1]]) {
+    const el = $(sel);
+    if (!el) continue;
+    el.addEventListener('pointerdown', (e) => {
+      el.classList.add('active');
+      if (game.autoDrive) game.autoDrive.nudge(dir);
+      buzz(12);
+      setTimeout(() => el.classList.remove('active'), 130);
+      e.preventDefault();
+    });
+  }
+
   // --------------------------------------------------------- one-shot taps
   layer.querySelectorAll('.tc-tap').forEach((el) => {
     el.addEventListener('pointerdown', (e) => {
       const act = el.dataset.tap;
       el.style.background = 'rgba(255, 30, 70, 0.42)';
       setTimeout(() => { el.style.background = ''; }, 120);
-      if (act === 'pause') {
+      if (act === 'drive') {
+        const on = game.autoDrive ? game.autoDrive.setEnabled(!game.autoDrive.enabled) : false;
+        el.classList.toggle('on', on);
+        buzz(18);
+      } else if (act === 'aim') {
+        const on = game.autoDrive ? game.autoDrive.setAutoFire(!game.autoDrive.autoFire) : false;
+        el.classList.toggle('on', on);
+        buzz(18);
+      } else if (act === 'auto') {
+        autoThrottle = !autoThrottle;
+        el.classList.toggle('on', autoThrottle);
+        if (game && game.hud && game.hud.showAlert) {
+          game.hud.showAlert(autoThrottle ? 'AUTO-THROTTLE ENGAGED' : 'MANUAL THROTTLE', false, 1400);
+        }
+        if (!autoThrottle) { setKey(KEYS.forward, false); setKey(KEYS.backward, false); }
+        else { applyAutoThrottle(false); }
+      } else if (act === 'pause') {
         if (game && game.togglePause) game.togglePause();
       } else if (KEYS[act]) {
         press(KEYS[act]);
@@ -333,6 +403,7 @@ export function installTouchControls(game) {
     // on desktop, which is not enough when your thumbs are still moving.
     if (playing && lastState !== 'playing') {
       try {
+        applyAutoThrottle(false);
         if (game.vehicle) {
           game.vehicle.invulnTimer = Math.max(game.vehicle.invulnTimer, 10);
         }

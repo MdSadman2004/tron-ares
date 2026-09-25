@@ -1558,3 +1558,56 @@ html, body {
 .beam-slot .weapon-note {
   color: rgba(255, 160, 120, 0.8);
 }
+
+/* ---------- Rival program roster ---------- */
+.rival-panel {
+  position: fixed; top: 96px; right: 18px; z-index: 40;
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 186px; pointer-events: none;
+}
+.rival-row {
+  background: linear-gradient(90deg, rgba(40, 6, 60, 0.82), rgba(16, 3, 26, 0.62));
+  border: 1px solid rgba(192, 75, 255, 0.55);
+  border-left: 3px solid #c04bff;
+  border-radius: 4px; padding: 5px 8px 6px;
+  box-shadow: 0 0 14px rgba(150, 40, 220, 0.28);
+}
+.rival-head { display: flex; justify-content: space-between; align-items: baseline; }
+.rival-name { font-size: 12px; letter-spacing: 0.12em; color: #e9b8ff; font-weight: 700; }
+.rival-dist { font-size: 10px; color: #b98ad6; }
+.rival-craft { font-size: 9px; letter-spacing: 0.08em; color: #9a6fb8; margin: 1px 0 3px; }
+.rival-track { height: 4px; background: rgba(120, 40, 170, 0.3); border-radius: 2px; overflow: hidden; }
+.rival-fill {
+  height: 100%; background: linear-gradient(90deg, #c04bff, #f0a8ff);
+  box-shadow: 0 0 8px rgba(192, 75, 255, 0.7); transition: width 0.18s linear;
+}
+.rival-fill.low { background: linear-gradient(90deg, #ff3b6b, #ff9a6b); box-shadow: 0 0 8px rgba(255, 60, 100, 0.7); }
+
+/* ---------- Phone layout tuning ---------- */
+body.is-touch .rival-panel { top: 62px; right: 8px; min-width: 156px; gap: 4px; }
+body.is-touch .rival-row { padding: 4px 7px; }
+body.is-touch .rival-name { font-size: 11px; }
+body.is-touch .rival-craft { font-size: 8px; }
+body.is-touch .fps-counter { font-size: 11px; }
+body.is-touch #combat-alert { font-size: 13px; }
+body.is-touch .gauge-header { font-size: 10px; }
+
+.arena-btn {
+  border-color: rgba(0, 240, 255, 0.55) !important;
+  color: #bff6ff !important;
+  text-shadow: 0 0 10px rgba(0, 220, 255, 0.7) !important;
+}
+.arena-btn.active {
+  background: rgba(0, 240, 255, 0.18) !important;
+  border-color: rgba(0, 240, 255, 0.95) !important;
+}
+
+#tc-layer .tc-lane {
+  border-color: rgba(0, 240, 255, 0.7) !important;
+  color: #bff6ff !important;
+  text-shadow: 0 0 8px rgba(0, 220, 255, 0.8);
+  letter-spacing: 0.1em;
+}
+#tc-layer .tc-lane:active, #tc-layer .tc-lane.active {
+  background: rgba(0, 240, 255, 0.3) !important;
+}

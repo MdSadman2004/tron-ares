@@ -14,6 +14,12 @@ import { TronHUD } from './hud.js';
 import { PickupSystem, PICKUP_TYPES } from './pickups.js';
 import { audio } from './audio.js';
 import { installTouchControls } from './mobile.js';
+import { OpponentDirector, OPPONENT_SPECS } from './opponents.js';
+import { AutoDrive } from './autodrive.js';
+
+// Rival programs share the enemy contract, so scoring, loot, ramming and
+// weapons treat them exactly like the MCP constructs.
+Object.assign(ENEMY_SPECS, OPPONENT_SPECS);
 
 /**
  * TRON: ARES — PROTOCOL OVERRIDE
@@ -35,7 +41,12 @@ export const SCENARIOS = {
   FREE: {
     id: 'FREE',
     label: 'FREE FLIGHT ROAM',
-    desc: 'Sandbox patrol. No hostiles, no damage — fly all five configurations over the grid.'
+    desc: 'Sandbox patrol. No hostiles, no damage — fly all nine configurations over the grid.'
+  },
+  ARENA: {
+    id: 'ARENA',
+    label: 'LIGHT CYCLE ARENA',
+    desc: 'Bike protocol. Rival programs ride with ribbons lit — touch any light wall, yours included, and you derezz. Last program riding wins.'
   }
 };
 
@@ -95,6 +106,8 @@ class TronAresGame {
     this.initSystems();
     this.initInputListeners();
     this.initHUD();
+    // initSystems runs before the HUD exists, so hand the director its panel now
+    if (this.opponents) this.opponents.hud = this.hud;
 
     // Expose for diagnostics / automated tests
     window.__TRON__ = this;
@@ -201,6 +214,15 @@ class TronAresGame {
     this.weaponSystem = new WeaponSystem(this.scene);
     this.enemySpawner = new EnemySpawner(this.scene);
     this.pickups = new PickupSystem(this.scene);
+
+    // Rivals need the world for structure avoidance, and they are spawned
+    // through the enemy array so every existing system sees them.
+    this.enemySpawner.world = this.world;
+    this.opponents = new OpponentDirector(this.scene, this.enemySpawner, this.world, this.hud);
+    this.enemySpawner.director = this.opponents;   // rivals read each other's walls through this
+
+    // TouchDrive: the machine can fly itself while you shoot
+    this.autoDrive = new AutoDrive(this);
   }
 
   initHUD() {
@@ -296,15 +318,31 @@ class TronAresGame {
 
     this.elapsed = 0;
     this.enemySpawner.clear();
+    if (this.opponents) this.opponents.clear();
     this.weaponSystem.clear();
     this.pickups.clear();
     this.vehicle.reset();
+    this.gameStats.rivalKills = 0;
 
     this.setState('playing');
 
-    if (this.scenario.id === 'FREE') {
+    if (this.autoDrive && this.autoDrive.enabled) {
+      this.hud.showAlert('◈ TOUCHDRIVE ACTIVE — TAP LANES + WEAPONS, THE MACHINE FLIES', true, 3600);
+    }
+    if (this.scenario.id === 'ARENA') {
+      // bike protocol: everyone rides the deck with the wall lit
       this.waveState = 'idle';
-      this.hud.showWaveBanner('FREE FLIGHT', 'NO HOSTILES — FLY ALL FIVE CONFIGURATIONS');
+      this.opponents.arenaMode = true;
+      this.vehicle.forceRibbon = true;
+      if (this.vehicle.mode !== 'CYCLE') this.vehicle.setMode('CYCLE');
+      this.opponents.nextSpawn = 2.0;
+      this.opponents.spawnForWave(4, this.vehicle);
+      this.hud.showWaveBanner('LIGHT CYCLE ARENA', 'RIBBONS LIVE — DO NOT TOUCH THE LIGHT');
+      this.hud.showAlert('⚔ ARENA PROTOCOL ACTIVE // RIVAL PROGRAMS INBOUND', true, 4000);
+    } else if (this.scenario.id === 'FREE') {
+      this.waveState = 'idle';
+      if (this.opponents) this.opponents.spawnForWave(3, this.vehicle);
+      this.hud.showWaveBanner('FREE FLIGHT', 'RIVAL SPARRING PROGRAM ACTIVE — FLY ALL NINE CONFIGURATIONS');
       this.hud.showAlert('SANDBOX PATROL ACTIVE // PRESS [F] OR [1-5] TO TRANSFORM', true, 5000);
     } else {
       this.waveState = 'intermission';
@@ -346,6 +384,9 @@ class TronAresGame {
   handleGameOver() {
     this.weaponSystem.clearBeam('primary');
     this.weaponSystem.clearBeam('secondary');
+    if (this.hud && this.hud.setRivals) this.hud.setRivals([]);
+    this.vehicle.forceRibbon = false;
+    if (this.opponents) this.opponents.arenaMode = false;
     this.setState('gameover');
     audio.playExplosion();
     // Full derezz: the whole grid corrupts while the core disintegrates
@@ -374,6 +415,10 @@ class TronAresGame {
   //  INPUT
   // ==================================================================
   requestMode(mode) {
+    if (this.scenario.id === 'ARENA' && mode !== 'CYCLE') {
+      this.hud.showAlert('ARENA PROTOCOL // LIGHT CYCLE ONLY', true, 1500);
+      return;
+    }
     if (this.state !== 'playing' && this.state !== 'paused') return;
     if (!VEHICLE_SPECS[mode] || mode === this.vehicle.mode) return;
     this.vehicle.setMode(mode);
@@ -434,8 +479,14 @@ class TronAresGame {
         case 'ArrowUp': this.inputs.forward = true; this.inputs.climb = true; break;
         case 'KeyS': this.inputs.backward = true; break;
         case 'ArrowDown': this.inputs.backward = true; this.inputs.dive = true; break;
-        case 'KeyA': case 'ArrowLeft': this.inputs.left = true; break;
-        case 'KeyD': case 'ArrowRight': this.inputs.right = true; break;
+        case 'KeyA': case 'ArrowLeft':
+          this.inputs.left = true;
+          this.autoDrive && this.autoDrive.notifyManual();
+          break;
+        case 'KeyD': case 'ArrowRight':
+          this.inputs.right = true;
+          this.autoDrive && this.autoDrive.notifyManual();
+          break;
         case 'KeyR': this.recallToGrid(); break;
         case 'ShiftLeft': case 'ShiftRight':
           if (!this.inputs.boost) audio.playBoost();
@@ -452,6 +503,18 @@ class TronAresGame {
         case 'KeyQ':
           this.inputs.special = true;
           this.fireSpecial();
+          break;
+        case 'KeyV':
+          if (this.autoDrive) {
+            const on = this.autoDrive.setEnabled(!this.autoDrive.enabled);
+            this.hud.showAlert(on ? '◈ AUTODRIVE ENGAGED' : '◈ MANUAL FLIGHT', on, 1500);
+          }
+          break;
+        case 'KeyB':
+          if (this.autoDrive) {
+            const on = this.autoDrive.setAutoFire(!this.autoDrive.autoFire);
+            this.hud.showAlert(on ? '◈ AUTO-FIRE ON' : '◈ AUTO-FIRE OFF', false, 1200);
+          }
           break;
         case 'KeyZ':
           // PARTICLE LAZER (sustained crimson beam)
@@ -713,7 +776,12 @@ class TronAresGame {
     this.gameStats.score += gained;
     this.gameStats.kills++;
 
-    if (killType === 'rear') {
+    if (spec.rival) {
+      this.gameStats.rivalKills = (this.gameStats.rivalKills || 0) + 1;
+      this.hud.showWaveBanner(`${enemy.program || 'RIVAL'} DEREZZED`, `+${gained} PTS — ${spec.name} REMOVED FROM THE GRID`);
+      audio.playExplosion();
+      this.glitchFX && this.glitchFX.trigger(0.5, 0.35);
+    } else if (killType === 'rear') {
       this.gameStats.rearLaserKills++;
       this.hud.showAlert(`🔴 PURSUER DEREZZED VIA REAR LASER // +${gained} PTS`, true, 1800);
     } else if (spec.boss) {
@@ -722,7 +790,8 @@ class TronAresGame {
     }
 
     // Loot drop
-    const chance = enemy.type === 'RECOGNIZER' ? 1.0
+    const chance = spec.rival ? 1.0
+      : enemy.type === 'RECOGNIZER' ? 1.0
       : enemy.type === 'GUNSHIP' ? 0.6
       : enemy.type === 'DRONE' ? 0.18
       : 0.3;
@@ -880,17 +949,79 @@ class TronAresGame {
     }
   }
 
+  /**
+   * ARENA: light walls are solid death for whoever touches them — the player,
+   * the rivals, anyone. This is what makes a bike duel a duel.
+   */
+  checkRibbonLethality() {
+    if (!this.opponents || this.opponents.active.length === 0) return;
+    const HIT_R2 = 2.1 * 2.1;
+
+    // Gather every wall in play
+    const walls = [];
+    for (const r of this.opponents.active) {
+      if (!r.dead && r.trail && r.trail.samples.length > 5) {
+        walls.push({ samples: r.trail.samples, owner: r });
+      }
+    }
+
+    // rivals vs walls (including each other's)
+    for (const r of this.opponents.active) {
+      if (r.dead) continue;
+      for (const w of walls) {
+        if (w.owner === r) continue;
+        const arr = w.samples;
+        let hit = false;
+        for (let i = 0; i < arr.length - 4; i++) {
+          const sp = arr[i].pos || arr[i].position || arr[i];
+          if (sp.distanceToSquared(r.position) < HIT_R2) { hit = true; break; }
+        }
+        if (hit) {
+          r.health = 0;
+          r.dead = true;
+          this.weaponSystem.spawnExplosion(r.position.clone(), r.spec.color, 1.3);
+          this.onEnemyKilled(r, 'ram');
+          break;
+        }
+      }
+    }
+
+    // player vs rival walls
+    if (this.vehicle.invulnTimer <= 0) {
+      for (const w of walls) {
+        const arr = w.samples;
+        for (let i = 0; i < arr.length - 3; i++) {
+          const sp = arr[i].pos || arr[i].position || arr[i];
+          if (sp.distanceToSquared(this.vehicle.position) < HIT_R2) {
+            this.applyPlayerDamage(999, sp.clone(), 'ribbon');
+            return;
+          }
+        }
+      }
+    }
+  }
+
   // ==================================================================
   //  WAVE CONTROL
   // ==================================================================
   updateWaves(delta) {
     if (this.scenario.id === 'FREE') return;
 
+    if (this.scenario.id === 'ARENA') {
+      this.elapsed += delta;
+      this.gameStats.wave = 1 + Math.floor(this.elapsed / 35);
+      this.enemySpawner.waveScale = this.gameStats.wave;
+      if (this.opponents) this.opponents.pollEndless(delta, this.gameStats.wave, this.vehicle);
+      this.checkRibbonLethality();
+      return;
+    }
+
     if (this.scenario.id === 'CHASE') {
       this.elapsed += delta;
       this.gameStats.wave = 1 + Math.floor(this.elapsed / 30);
       this.enemySpawner.waveScale = this.gameStats.wave;
       this.enemySpawner.spawnEndless(delta, this.vehicle, this.elapsed);
+      if (this.opponents) this.opponents.pollEndless(delta, this.gameStats.wave, this.vehicle);
       return;
     }
 
@@ -900,6 +1031,7 @@ class TronAresGame {
       if (this.intermissionTimer <= 0) {
         this.waveState = 'active';
         this.enemySpawner.spawnWave(this.gameStats.wave, this.vehicle);
+        if (this.opponents) this.opponents.spawnForWave(this.gameStats.wave, this.vehicle);
         this.hud.showWaveBanner(`WAVE ${String(this.gameStats.wave).padStart(2, '0')}`, EnemySpawner.describeWave(this.gameStats.wave));
       }
       return;
@@ -1052,6 +1184,9 @@ class TronAresGame {
       if (this.inputs.fireFront) this.fireForwardLasers();
       if (this.inputs.fireRear) this.fireRearLasers();
 
+      // 2. Autopilot writes inputs before the vehicle reads them
+      if (this.autoDrive) this.autoDrive.update(delta);
+
       // 2a. Sustained beams (Z / X) — held keys keep the lances alive
       this.updateBeams(delta);
 
@@ -1076,6 +1211,9 @@ class TronAresGame {
         (killedEnemy, isRearLaser) => this.onEnemyKilled(killedEnemy, isRearLaser),
         (damage) => this.applyPlayerDamage(damage, null)
       );
+
+      // 3b. Rival roster + HUD panel
+      if (this.opponents) this.opponents.update(delta, this.vehicle);
 
       // 4. Pickups
       this.pickups.update(delta, this.vehicle, (type, amount) => {

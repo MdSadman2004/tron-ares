@@ -4,6 +4,9 @@
     <!-- Only used for the Google-Fonts stylesheet; the game itself is bundled. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Short haptic ticks on weapon / transform input -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:allowBackup="true"
         android:hardwareAccelerated="true"

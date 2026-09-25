@@ -221,7 +221,7 @@ export const VEHICLE_SPECS = {
  * Light ribbon trail (the signature Tron light-wall ribbon) used by
  * ground vehicles. Additive-blended, fades with age.
  */
-class LightRibbon {
+export class LightRibbon {
   constructor(scene, color = 0xff0838, segments = 56, width = 0.6) {
     this.segments = segments;
     this.width = width;
@@ -337,6 +337,7 @@ export class AresVehicle {
     // Beam capacitor (Particle Lazer / Ribbon Cutter)
     this.beamCharge = 100;
     this.beamFiring = { primary: false, secondary: false };
+    this.forceRibbon = false;
 
     // Weapon cooldowns
     this.frontCooldown = 0;
@@ -1449,7 +1450,8 @@ export class AresVehicle {
     this.animateActiveModel(delta, spec);
 
     // --- Light ribbon trail ------------------------------------------------------
-    const ribbonActive = !spec.air && Math.abs(this.speed) > 26;
+    // Arena protocol keeps the ribbon lit at any speed: the wall is the weapon.
+    const ribbonActive = this.forceRibbon || (!spec.air && Math.abs(this.speed) > 26);
     if (this.ribbon) {
       const trailPos = this.position.clone().addScaledVector(forwardVec, 2.0);
       trailPos.y += 0.15;

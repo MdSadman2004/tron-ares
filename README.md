@@ -94,6 +94,39 @@ terminates on whatever it touches first (enemy, structure or ground), spawning
 impact flashes. The capacitor (100) drains at 42/s (lazer) + 26/s (cutter) and
 regenerates at 17/s; at zero the beams cut out. Beam kills score at 1.4x.
 
+## Rival programs (computer opponents)
+
+`src/opponents.js` — pilots, not constructs. Each rival flies a fleet
+configuration (CYCLE duelist / JET ace / HEAVY bomber / VTOL strafer), holds a
+preferred engagement range, leads its shots with deliberate scatter, orbits when
+it has the angle, backs off when hurt, and steers around the grid's structures.
+They join from **wave 2** in Survival, periodically in Highway Chase, and one
+spars with you in Free Flight. They live in the same enemy array as the MCP
+forces, so weapons, ramming, scoring and loot all apply to them unchanged.
+The purple roster panel shows who is hunting you and how hurt they are.
+
+## LIGHT CYCLE ARENA (bike protocol)
+
+Bikes only. You and three rival programs ride with your light walls lit — touch
+any ribbon, **including your own**, and you derezz. The rivals steer around walls
+(they derezzed themselves constantly before that was added), and they die on
+your ribbon just as you die on theirs. Transformations are locked in this
+protocol: `F` and `1-9` will be refused. Last program riding wins.
+
+## TouchDrive (autopilot)
+
+Asphalt-style touch driving: the machine flies itself, you just tap.
+
+| Control | Action |
+|---|---|
+| **V** / ◈ DRIVE chip | toggle autopilot (on by default on phones) |
+| **B** / ◈ AIM chip | auto-fire at any hostile inside the nose cone |
+| ◀ LANE / LANE ▶ | swing the autopilot 45° left/right (lane change) |
+| touch the stick | the pilot yields instantly, resumes ~1 s after you let go |
+
+Autopilot navigates the grid, avoids structures, holds altitude in flight modes
+and keeps the map edge from ending your run.
+
 ## Android build (phone)
 
 The game ships as a native Android app: a WebView shell (`android/`) that serves

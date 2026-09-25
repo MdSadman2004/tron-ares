@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 
+// Phones are draw-call bound long before they are vertex bound: thin the
+// obstacle fields there and keep the full grid on desktop.
+const PHONE_DENSITY = (typeof window !== 'undefined' && window.__TRON_PHONE__) ? 0.55 : 1;
+
 /**
  * TRON: ARES — THE GRID (world)
  *
@@ -781,7 +785,7 @@ export class TronWorld {
 
   /** 3 — MONOLITH FIELD: tall thin monolith maze. */
   buildMonolithField(c) {
-    for (let i = 0; i < 132; i++) {
+    for (let i = 0; i < Math.round(132 * PHONE_DENSITY); i++) {
       const x = c.x + this.rr(-286, 286);
       const z = c.z + this.rr(-286, 286);
       const h = this.rr(48, 195);
@@ -816,7 +820,7 @@ export class TronWorld {
 
   /** 5 — PROCESSING PLANT: factory blocks + glowing chimneys. */
   buildPlant(c) {
-    for (let i = 0; i < 36; i++) {
+    for (let i = 0; i < Math.round(36 * PHONE_DENSITY); i++) {
       const x = c.x + this.rr(-262, 262);
       const z = c.z + this.rr(-262, 262);
       const h = this.rr(24, 78);
@@ -1008,7 +1012,7 @@ export class TronWorld {
   buildSolarFarm(c) {
     const panelGeo = new THREE.BoxGeometry(46, 0.6, 26);
     const panelMat = new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.15, metalness: 0.95 });
-    const count = 84;
+    const count = Math.round(84 * PHONE_DENSITY);
     const panels = new THREE.InstancedMesh(panelGeo, panelMat, count);
     const glowGeo = new THREE.BoxGeometry(46.4, 0.2, 0.8);
     const glowMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
@@ -1081,7 +1085,7 @@ export class TronWorld {
 
   /** 11 — RUINS: derezzed blocks, rubble field. */
   buildRuins(c) {
-    for (let i = 0; i < 148; i++) {
+    for (let i = 0; i < Math.round(148 * PHONE_DENSITY); i++) {
       const x = c.x + this.rr(-286, 286);
       const z = c.z + this.rr(-286, 286);
       const h = this.rr(5, 52);
@@ -1220,7 +1224,7 @@ export class TronWorld {
     this.groundGlow.renderOrder = 1;
     this.scene.add(this.groundGlow);
 
-    const STREAKS = 240;
+    const STREAKS = Math.round(240 * (PHONE_DENSITY < 1 ? 0.35 : 1));
     this.streakData = [];
     const positions = new Float32Array(STREAKS * 2 * 3);
     for (let i = 0; i < STREAKS; i++) {

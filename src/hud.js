@@ -296,6 +296,39 @@ export class TronHUD {
     }
   }
 
+  /**
+   * Rival roster: who is hunting you, how hurt they are, how close.
+   * DOM, so it is rebuilt a few times a second at most — never per frame.
+   */
+  setRivals(list) {
+    const panel = document.getElementById('rival-panel');
+    if (!panel) return;
+    const now = performance.now();
+    if (!list || !list.length) {
+      if (!panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        this._rivalSig = '';
+      }
+      return;
+    }
+    panel.classList.remove('hidden');
+    const sig = list.map((r) => r.name + '|' + r.craft).join(',');
+    if (sig === this._rivalSig && now - (this._rivalAt || 0) < 400) return;
+    this._rivalSig = sig;
+    this._rivalAt = now;
+    panel.innerHTML = list.map((r) => {
+      const pct = Math.round(Math.max(0, Math.min(1, r.hp)) * 100);
+      const low = pct < 40 ? ' low' : '';
+      return '<div class="rival-row">' +
+        '<div class="rival-head"><span class="rival-name">' + r.name + '</span>' +
+        '<span class="rival-dist">' + Math.round(r.dist) + 'M</span></div>' +
+        '<div class="rival-craft">' + r.craft + '</div>' +
+        '<div class="rival-track"><div class="rival-fill' + low + '" style="width:' + pct + '%"></div></div>' +
+        '</div>';
+    }).join('');
+  }
+
   setFps(value) {
     if (this.el.fpsCounter) this.el.fpsCounter.textContent = `${value} FPS`;
   }
