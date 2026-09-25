@@ -22,7 +22,7 @@ import { AutoDrive } from './autodrive.js';
 Object.assign(ENEMY_SPECS, OPPONENT_SPECS);
 
 /**
- * TRON: ARES — PROTOCOL OVERRIDE
+ * GRID PROTOCOL — PROTOCOL OVERRIDE
  * Main game orchestrator: state machine (menu / playing / paused / gameover),
  * scenario rules, wave direction, scoring, adaptive quality.
  */

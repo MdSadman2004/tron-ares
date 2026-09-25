@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * TRON: ARES — GLITCH / DEREZZ FX
+ * GRID PROTOCOL — GLITCH / DEREZZ FX
  *
  * A full-screen corruption pass: block displacement, RGB split, scanlines,
  * grain and heavy magenta corruption bands. Intensity is driven by a small

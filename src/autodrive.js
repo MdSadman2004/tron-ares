@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * TRON: ARES — AUTODRIVE (TouchDrive-style)
+ * GRID PROTOCOL — AUTODRIVE (TouchDrive-style)
  *
  * The machine flies itself: it picks a heading, follows the grid, steers around
  * structures, holds altitude and keeps the nose on the nearest hostile. The

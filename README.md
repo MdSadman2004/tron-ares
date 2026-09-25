@@ -1,4 +1,7 @@
-# TRON: ARES - PROTOCOL OVERRIDE
+# GRID PROTOCOL
+
+A neon grid-combat shooter inspired by the light-cycle cinema of the Tron films.
+All names, art and code in this project are original.
 
 A 9-vehicle transformable grid combat simulator built with Three.js + Vite.
 Playable in any desktop browser with keyboard + mouse.

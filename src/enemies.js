@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { audio } from './audio.js';
 
 /**
- * TRON: ARES — MCP ENEMY FORCES
+ * GRID PROTOCOL — MCP ENEMY FORCES
  *
  * 5 enemy classes with distinct 3D models and combat AI:
  *   CYCLE     — MCP Pursuer lightcycle: drafts and rams, fires pulse bolts

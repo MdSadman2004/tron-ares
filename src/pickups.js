@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { audio } from './audio.js';
 
 /**
- * TRON: ARES — GRID ENERGY CELLS
+ * GRID PROTOCOL — GRID ENERGY CELLS
  * Collectible drops from derezzed enemies:
  *   SHIELD — restores 30% core integrity
  *   BOOST  — instantly refills the boost capacitor

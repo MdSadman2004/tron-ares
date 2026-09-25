@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { audio } from './audio.js';
 
 /**
- * TRON: ARES — WEAPON & PROJECTILE SYSTEM
+ * GRID PROTOCOL — WEAPON & PROJECTILE SYSTEM
  *
  * Projectile kinds: LASER bolt, HEAVY bolt, MISSILE (homing), BOMB (gravity +
  * fuse), ROCKET (barrage). Plus expanding SHOCKWAVE rings (EMP / stomp /

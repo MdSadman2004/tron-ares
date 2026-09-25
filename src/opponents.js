@@ -3,7 +3,7 @@ import { audio } from './audio.js';
 import { LightRibbon } from './vehicle.js';
 
 /**
- * TRON: ARES — RIVAL PROGRAMS (computer opponents)
+ * GRID PROTOCOL — RIVAL PROGRAMS (computer opponents)
  *
  * The MCP forces in enemies.js are constructs: they swarm, ram and die. These
  * are pilots. Each rival flies one of the fleet configurations, holds a

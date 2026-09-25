@@ -1,5 +1,5 @@
 /**
- * TRON: ARES — TOUCH CONTROLS (Android / tablet)
+ * GRID PROTOCOL — TOUCH CONTROLS (Android / tablet)
  *
  * The game is driven entirely by keyboard state, so this layer dispatches
  * REAL key events rather than reaching into game internals: identical code

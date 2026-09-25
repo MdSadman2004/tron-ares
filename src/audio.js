@@ -1,5 +1,5 @@
 /**
- * TRON: ARES - PROCEDURAL AUDIO ENGINE
+ * GRID PROTOCOL - PROCEDURAL AUDIO ENGINE
  * 100% Web Audio API synthesized soundtrack & SFX (Zero external asset dependencies)
  * Generates Daft Punk / Nine Inch Nails style Tron dark synthwave music + reactive SFX
  */

@@ -4,7 +4,7 @@ import { ARES_VEHICLE_SPECS, ARES_VEHICLE_MODES, ARES_BUILDERS } from './ares-ve
 import { ChassisRig } from './chassis.js';
 
 /**
- * TRON: ARES — MULTI-MODE TRANSFORMABLE VEHICLE SYSTEM
+ * GRID PROTOCOL — MULTI-MODE TRANSFORMABLE VEHICLE SYSTEM
  * 5 transformable configurations, each with its own 3D model, flight/ground
  * physics profile, weapon loadout and special ability:
  *

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 const PHONE_DENSITY = (typeof window !== 'undefined' && window.__TRON_PHONE__) ? 0.55 : 1;
 
 /**
- * TRON: ARES — THE GRID (world)
+ * GRID PROTOCOL — THE GRID (world)
  *
  * A district-based map. Vehicles drive/fly over an infinite neon grid whose
  * surface is populated by 16 procedurally-placed districts with distinct

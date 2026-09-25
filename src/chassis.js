@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * TRON: ARES — MORPHING CHASSIS RIG
+ * GRID PROTOCOL — MORPHING CHASSIS RIG
  *
  * One physical machine that reconfigures itself. Every mode is a POSE TABLE
  * over the same articulated parts — nothing is swapped or cross-faded. During

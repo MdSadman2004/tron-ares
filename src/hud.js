@@ -3,7 +3,7 @@ import { VEHICLE_MODES, VEHICLE_SPECS, MODE_ORDER } from './vehicle.js';
 import { audio } from './audio.js';
 
 /**
- * TRON: ARES — TACTICAL HUD
+ * GRID PROTOCOL — TACTICAL HUD
  * Full cockpit: mode selector, weapon loadout, wave banners, combo meter,
  * boss integrity bar, damage vignette, rear tactical camera and pause overlay.
  */

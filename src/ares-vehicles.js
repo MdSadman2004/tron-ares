@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * TRON: ARES — DILLINGER GRID VEHICLES (from the 2025 film)
+ * GRID PROTOCOL — DILLINGER GRID VEHICLES (from the 2025 film)
  *
  *   JUMP JET      — Red Guard aerial combat vehicle: 4 wings, each deploying a
  *                   Light Ribbon; no cockpit, baton-rezzed. (Ares film)
