@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { MODE_ORDER } from './vehicle.js';
 
 /**
  * GRID PROTOCOL — AUTODRIVE (TouchDrive-style)
@@ -20,7 +21,10 @@ const wrapAngle = (a) => {
 export class AutoDrive {
   constructor(game) {
     this.game = game;
-    this.enabled = !!window.__TRON_PHONE__;   // phones start in TouchDrive
+    // Phones start in TouchDrive; desktop remembers your last choice.
+    let saved = null;
+    try { saved = localStorage.getItem('gp:autodrive'); } catch (e) { /* ignore */ }
+    this.enabled = saved === null ? !!window.__TRON_PHONE__ : saved === '1';
     this.autoFire = true;
     this.manualUntil = 0;                     // player override window
     this.headingTimer = 0;
@@ -30,10 +34,16 @@ export class AutoDrive {
     this._steerSign = null;
     this.hoverHeight = 24;
     this.lastNudge = 0;
+
+    // --- showcase pilot (autoplay only) ---
+    this.demoIndex = 0;
+    this.demoTransform = 8;
+    this.demoAction = 6;
   }
 
   setEnabled(on) {
     this.enabled = !!on;
+    try { localStorage.setItem('gp:autodrive', this.enabled ? '1' : '0'); } catch (e) { /* ignore */ }
     if (!this.enabled) {
       // hand the controls back cleanly
       const inp = this.game.inputs;
@@ -102,6 +112,32 @@ export class AutoDrive {
     } else if (this._firedAuto) {
       g.inputs.fireFront = false;
       this._firedAuto = false;
+    }
+
+    // ---------------------------------------------------------- showcase
+    // Autonomous play is a demo: the machine must survive long enough to be
+    // worth watching, and it must actually show off every configuration.
+    if (g.autoplay) {
+      this.demoTransform -= delta;
+      if (this.demoTransform <= 0 && MODE_ORDER && MODE_ORDER.length) {
+        this.demoTransform = 9 + Math.random() * 4;
+        this.demoIndex = (this.demoIndex + 1) % MODE_ORDER.length;
+        const want = MODE_ORDER[this.demoIndex];
+        if (want && want !== v.mode) g.requestMode(want);
+      }
+      this.demoAction -= delta;
+      if (this.demoAction <= 0) {
+        this.demoAction = 7 + Math.random() * 5;
+        if (g.fireSpecial) g.fireSpecial();
+        g.inputs.boost = true;
+        setTimeout(() => { g.inputs.boost = false; }, 1400);
+      }
+      // keep the demo alive — a showcase that derezzes every ten seconds
+      // shows nothing
+      if (g.gameStats) {
+        g.gameStats.playerShield = Math.max(g.gameStats.playerShield, g.gameStats.maxShield * 0.72);
+      }
+      v.invulnTimer = Math.max(v.invulnTimer, 0.5);
     }
 
     if (!this.isDriving) return;

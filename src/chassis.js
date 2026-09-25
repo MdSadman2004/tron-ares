@@ -567,6 +567,17 @@ export class ChassisRig {
     plough: 0.66, rider: 0.10
   };
 
+  /** How far each part swings *through* its rotation on the way to the new
+   *  pose. High values read as mechanical whip (wheels, turret, ring). */
+  static WHIP = {
+    core: 0.16, nose: 0.44, canopy: 0.30,
+    wheelF: 1.75, wheelR: 1.75,
+    wingUL: 0.95, wingUR: 0.95, wingLL: 0.80, wingLR: 0.80,
+    engL: 1.25, engR: 1.25, engXL: 1.35, engXR: 1.35, engC: 1.20,
+    turret: 1.45, plough: 0.95, rotorPods: 1.35, foilL: 1.05, foilR: 1.05,
+    ring: 1.65, wake: 0.30, rider: 0.22
+  };
+
   static FLARE = {
     wingUL: 0.55, wingUR: 0.55, wingLL: 0.45, wingLR: 0.45,
     engL: 0.3, engR: 0.3, engXL: 0.3, engXR: 0.3,
@@ -635,6 +646,7 @@ export class ChassisRig {
   /** @returns progress 0..1 */
   update(delta) {
     this.time += delta;
+    this.updateMorphGlow();
     if (!this.morph) { this.animateLive(delta); return 1; }
 
     const m = this.morph;
@@ -664,12 +676,28 @@ export class ChassisRig {
       const sy = THREE.MathUtils.lerp(start.s[1], b.s[1], e);
       const sz = THREE.MathUtils.lerp(start.s[2], b.s[2], e);
 
-      // mid-morph flare: parts swing wide before locking in
+      // ---- morph choreography -------------------------------------------
+      // 1. anticipation: the part winds up against its travel direction
+      // 2. travel: eased, with an overshoot that snaps into the new pose
+      // 3. whip: rotating parts swing through extra angle and settle back
       const flare = (ChassisRig.FLARE[name] !== undefined ? ChassisRig.FLARE[name] : 0);
-      const swing = Math.sin(local * Math.PI) * flare;
-      part.position.set(px, py + swing * 0.35, pz);
-      part.rotation.set(rx, ry, rz + (name.startsWith('wing') ? swing * 0.5 : swing * 0.25));
-      part.scale.set(sx, sy, sz);
+      const whip = (ChassisRig.WHIP[name] !== undefined ? ChassisRig.WHIP[name] : 0.2);
+      const swing = Math.sin(local * Math.PI);            // 0 -> 1 -> 0
+      const windUp = -Math.sin(Math.min(1, local / 0.3) * Math.PI) * 0.6;
+      const settle = Math.sin(local * Math.PI) * (1 - local);
+
+      part.position.set(
+        px + settle * flare * 0.55,
+        py + swing * flare * 0.42 + windUp * 0.11,
+        pz + windUp * 0.4 + settle * flare * 0.62
+      );
+      part.rotation.set(
+        rx + swing * whip * 0.55,
+        ry + swing * whip * 0.85,
+        rz + swing * whip * (name.startsWith('wing') ? 1.25 : 0.8)
+      );
+      const squash = 1 + swing * (name === 'core' ? 0.075 : 0.05);
+      part.scale.set(sx * squash, sy * squash, sz * squash);
     }
 
     // arms travel with the body, folding through the middle of the swap
@@ -687,9 +715,11 @@ export class ChassisRig {
         THREE.MathUtils.lerp(st.p[2], armB[2], armE)
       );
       a.group.scale.setScalar(THREE.MathUtils.lerp(st.s, scaleTarget, armE));
-      a.group.rotation.z = a.side * (-0.2 - fold * 1.05);
-      a.elbow.rotation.z = a.side * (0.4 + fold * 0.75);
-      a.group.rotation.y = -a.side * (0.35 * (1 - fold));
+      const whip = Math.sin(prog * Math.PI);
+      a.group.rotation.z = a.side * (-0.2 - fold * 1.05 - whip * 0.45);
+      a.elbow.rotation.z = a.side * (0.4 + fold * 0.75 + whip * 0.55);
+      a.group.rotation.y = -a.side * (0.35 * (1 - fold) + whip * 0.3);
+      a.emitter && (a.emitter.scale.setScalar(1 + whip * 0.9));
     }
 
     this.animateLive(delta);
@@ -700,6 +730,23 @@ export class ChassisRig {
       return 1;
     }
     return prog;
+  }
+
+  /** The hull itself lights up as it reconfigures. */
+  updateMorphGlow() {
+    if (!this._glowBase) {
+      this._glowBase = {};
+      for (const key of ['neonRed', 'neonCyan', 'plate', 'armor']) {
+        const m = this.mats[key];
+        if (m && m.emissiveIntensity !== undefined) this._glowBase[key] = m.emissiveIntensity;
+      }
+    }
+    const prog = this.morph ? this.morph.t : 0;
+    const pulse = this.morph ? Math.sin(prog * Math.PI) : 0;
+    for (const key of Object.keys(this._glowBase)) {
+      const m = this.mats[key];
+      if (m) m.emissiveIntensity = this._glowBase[key] * (1 + pulse * 2.6);
+    }
   }
 
   /** Continuous animation of live parts (wheels, plumes, rotors, ring, wake). */

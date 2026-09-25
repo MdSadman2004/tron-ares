@@ -116,6 +116,21 @@ any ribbon, **including your own**, and you derezz. The rivals steer around wall
 your ribbon just as you die on theirs. Transformations are locked in this
 protocol: `F` and `1-9` will be refused. Last program riding wins.
 
+## Attract mode (no-score demonstration)
+
+Behind the title menu the grid plays itself: a demonstration run with the
+autopilot flying, hostiles spawned and weapons live — but **score, kills and the
+best-score record are all frozen at zero** and the run can never end, so it can
+never be farmed. Press ENTER THE GRID and the demo is torn down and a real run
+begins. `?attract=0` disables it.
+
+## Tutorial (playback, first run)
+
+A Temple-Run-style guided intro: the machine demonstrates each control, then
+waits for the player to perform it — steer, lane change, fire, Particle Lazer,
+morph — before handing over. Shown once per install (`gp:tutorialDone`), forced
+with `?tutorial=1`, skipped with `?tutorial=0` or the SKIP button.
+
 ## TouchDrive (autopilot)
 
 Asphalt-style touch driving: the machine flies itself, you just tap.

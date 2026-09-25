@@ -16,6 +16,7 @@ import { audio } from './audio.js';
 import { installTouchControls } from './mobile.js';
 import { OpponentDirector, OPPONENT_SPECS } from './opponents.js';
 import { AutoDrive } from './autodrive.js';
+import { createTutorial } from './tutorial.js';
 
 // Rival programs share the enemy contract, so scoring, loot, ramming and
 // weapons treat them exactly like the MCP constructs.
@@ -114,6 +115,31 @@ class TronAresGame {
 
     // Touch layer for phones / tablets (dispatches real key events)
     this.touch = installTouchControls(this);
+
+    // Attract mode: the grid plays itself behind the menu, and nothing it
+    // does counts — a demonstration, not a run.
+    this.attract = false;
+    this.scoringEnabled = true;
+    this.attractEnabled = !/[?&]attract=0/.test(location.search);
+    this.tutorial = createTutorial(this);
+
+    // Autonomous play: ?auto=1 (PLAY-DEMO.bat) hands the machine to the
+    // autopilot and lets it run — soaks, demos and screenshot passes.
+    this.autoplay = /[?&]auto=1/.test(location.search) || window.__TRON_AUTOPLAY__ === true;
+    if (this.autoplay) {
+      this.selectScenario('SURVIVAL');
+      this.autoDrive.setEnabled(true);
+      this.autoDrive.setAutoFire(true);
+      this.startGame();
+    } else {
+      this.startAttract();
+    }
+
+    // Production crash guard: never leave the player on a dead black canvas.
+    window.addEventListener('error', (ev) => this.showCrash(ev.message || 'unknown error'));
+    window.addEventListener('unhandledrejection', (ev) => this.showCrash(
+      (ev.reason && ev.reason.message) || 'async failure'
+    ));
 
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
@@ -306,6 +332,8 @@ class TronAresGame {
     audio.init();
     audio.resume();
 
+    this.stopAttract();
+
     // Reset world state
     this.gameStats.score = 0;
     this.gameStats.kills = 0;
@@ -325,6 +353,10 @@ class TronAresGame {
     this.gameStats.rivalKills = 0;
 
     this.setState('playing');
+
+    if (this.tutorial && this.tutorial.shouldRun() && !this.attract) {
+      this.tutorial.start();
+    }
 
     if (this.autoDrive && this.autoDrive.enabled) {
       this.hud.showAlert('◈ TOUCHDRIVE ACTIVE — TAP LANES + WEAPONS, THE MACHINE FLIES', true, 3600);
@@ -381,7 +413,75 @@ class TronAresGame {
     if (modalScreen) modalScreen.classList.remove('hidden');
   }
 
+  // ==================================================================
+  //  ATTRACT MODE — the grid demonstrates itself behind the menu
+  // ==================================================================
+  startAttract() {
+    if (!this.attractEnabled || this.state !== 'menu') return;
+    this.attract = true;
+    this.scoringEnabled = false;
+
+    this.enemySpawner.clear();
+    this.weaponSystem.clear();
+    this.pickups.clear();
+    this.vehicle.reset();
+    this.gameStats.score = 0;
+    this.gameStats.kills = 0;
+    this.gameStats.wave = 1;
+    this.gameStats.comboStreak = 0;
+    this.gameStats.multiplier = 1;
+
+    this.autoDrive.setEnabled(true);
+    this.autoDrive.setAutoFire(true);
+    this.waveState = 'idle';
+    this.enemySpawner.waveScale = 2;
+
+    // a light hostile presence so the demo has something to chew on
+    this.enemySpawner.spawnWave(2, this.vehicle);
+    if (this.opponents) {
+      this.opponents.arenaMode = false;
+      this.opponents.spawnForWave(3, this.vehicle);
+    }
+    this.hud.showAlert('◈ ATTRACT MODE // DEMONSTRATION RUN — NOTHING COUNTS', false, 3200);
+  }
+
+  stopAttract() {
+    if (!this.attract) return;
+    this.attract = false;
+    this.scoringEnabled = true;
+    this.enemySpawner.clear();
+    this.weaponSystem.clear();
+    this.pickups.clear();
+    if (this.opponents) this.opponents.clear();
+    this.vehicle.reset();
+  }
+
+  /** Friendly failure instead of a dead black screen. */
+  showCrash(message) {
+    if (this._crashed) return;
+    this._crashed = true;
+    const el = document.createElement('div');
+    el.id = 'crash-guard';
+    const card = document.createElement('div');
+    card.className = 'cg-card';
+    const h = document.createElement('h2'); h.textContent = 'GRID INTERRUPT';
+    const p = document.createElement('p');
+    p.textContent = 'The simulation hit an unexpected state and stopped safely.';
+    const c = document.createElement('code'); c.textContent = String(message).slice(0, 220);
+    const b = document.createElement('button'); b.id = 'cg-reload'; b.textContent = 'RE-INITIALIZE';
+    card.appendChild(h); card.appendChild(p); card.appendChild(c); card.appendChild(b);
+    el.appendChild(card);
+    document.body.appendChild(el);
+    b.addEventListener('click', () => location.reload());
+  }
+
   handleGameOver() {
+    if (!this.scoringEnabled) return;
+    if (this.autoplay) {
+      // keep the demo rolling: a fresh run a few seconds after each derezz
+      clearTimeout(this._autoRestart);
+      this._autoRestart = setTimeout(() => { this.startGame(); }, 4500);
+    }
     this.weaponSystem.clearBeam('primary');
     this.weaponSystem.clearBeam('secondary');
     if (this.hud && this.hud.setRivals) this.hud.setRivals([]);
@@ -760,6 +860,11 @@ class TronAresGame {
   /** Central kill handler: scoring, combo, drops. */
   onEnemyKilled(enemy, killType) {
     const spec = ENEMY_SPECS[enemy.type] || { score: 200, name: 'ENEMY' };
+    if (!this.scoringEnabled) {
+      // demonstration kill: the boom is real, the points are not
+      this.weaponSystem.spawnExplosion(enemy.position.clone(), 0xff0838, 1.0);
+      return;
+    }
     let mult = 1.0;
     if (killType === 'rear') mult = 1.5;
     else if (killType === 'special') mult = 1.3;
@@ -1176,7 +1281,7 @@ class TronAresGame {
     requestAnimationFrame(this.animate);
     const delta = Math.min(0.08, this.clock.getDelta());
 
-    if (this.state === 'playing') {
+    if (this.state === 'playing' || this.attract) {
       // 1. Vehicle physics & transformation
       this.vehicle.update(delta, this.inputs);
 
@@ -1186,6 +1291,17 @@ class TronAresGame {
 
       // 2. Autopilot writes inputs before the vehicle reads them
       if (this.autoDrive) this.autoDrive.update(delta);
+
+      // Transformation punch: on the first frame of a morph the camera kicks
+      // and the frame corrupts — the machine breaking apart has weight.
+      const tf = this.vehicle.transform;
+      if (tf && tf.active && !this._morphSeen) {
+        this._morphSeen = true;
+        this.camShake = Math.max(this.camShake || 0, 0.6);
+        if (this.glitchFX) this.glitchFX.trigger(0.32, 0.22);
+      } else if (tf && !tf.active) {
+        this._morphSeen = false;
+      }
 
       // 2a. Sustained beams (Z / X) — held keys keep the lances alive
       this.updateBeams(delta);
@@ -1214,6 +1330,16 @@ class TronAresGame {
 
       // 3b. Rival roster + HUD panel
       if (this.opponents) this.opponents.update(delta, this.vehicle);
+
+      // Attract mode is a demonstration: it never ends and never scores.
+      if (this.attract) {
+        this.gameStats.score = 0;
+        this.gameStats.kills = 0;
+        this.gameStats.playerShield = Math.max(
+          this.gameStats.playerShield, this.gameStats.maxShield * 0.75
+        );
+        this.vehicle.invulnTimer = Math.max(this.vehicle.invulnTimer, 0.4);
+      }
 
       // 4. Pickups
       this.pickups.update(delta, this.vehicle, (type, amount) => {

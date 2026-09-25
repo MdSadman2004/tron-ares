@@ -1207,7 +1207,8 @@ export class AresVehicle {
     this.transform.from = this.mode;
     this.transform.to = mode;
     this.oldMode = this.mode;
-    this.transform.dur = ChassisRig.POSES[mode] && VEHICLE_SPECS[mode].air ? 1.15 : 0.95;
+    // Snappier by design: the choreography carries the read, not the duration.
+    this.transform.dur = mode && VEHICLE_SPECS[mode].air ? 0.78 : 0.62;
 
     // every part of the machine travels to its new place — no swap
     this.rig.startMorph(this.mode, mode, this.transform.dur);
@@ -1275,7 +1276,7 @@ export class AresVehicle {
       // parts travel independently (staggered inside the rig)
       this.rig.update(delta);
 
-      this.fxRing.scale.setScalar(0.6 + ease * 3.4);
+      this.fxRing.scale.setScalar(0.6 + ease * 4.6);
       this.fxRingMat.opacity = 0.95 * (1 - ease);
       this.fxRing.rotation.y += delta * 6;
       this.mesh.scale.setScalar(1 + Math.sin(ease * Math.PI) * 0.06);

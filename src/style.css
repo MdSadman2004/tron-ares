@@ -1611,3 +1611,31 @@ body.is-touch .gauge-header { font-size: 10px; }
 #tc-layer .tc-lane:active, #tc-layer .tc-lane.active {
   background: rgba(0, 240, 255, 0.3) !important;
 }
+
+/* ---------- Crash guard ---------- */
+#crash-guard {
+  position: fixed; inset: 0; z-index: 9999; display: flex;
+  align-items: center; justify-content: center;
+  background: rgba(4, 1, 8, 0.92); backdrop-filter: blur(3px);
+}
+#crash-guard .cg-card {
+  max-width: 520px; padding: 26px 30px; text-align: center;
+  border: 1px solid rgba(255, 8, 56, 0.6); border-radius: 8px;
+  background: rgba(14, 2, 10, 0.95);
+  box-shadow: 0 0 40px rgba(255, 8, 56, 0.25);
+  font-family: var(--font-mono, monospace); color: #f0d8de;
+}
+#crash-guard h2 { margin: 0 0 10px; color: #ff0838; letter-spacing: 0.14em; font-size: 20px; }
+#crash-guard p { margin: 0 0 12px; font-size: 13px; color: #c8a8b2; }
+#crash-guard code {
+  display: block; margin: 0 0 18px; padding: 8px 10px; font-size: 11px;
+  color: #ffb0c0; background: rgba(255, 8, 56, 0.08);
+  border: 1px solid rgba(255, 8, 56, 0.25); border-radius: 4px;
+  overflow-wrap: anywhere; text-align: left;
+}
+#crash-guard button {
+  padding: 10px 26px; font: inherit; font-size: 13px; letter-spacing: 0.12em;
+  color: #fff; background: rgba(255, 8, 56, 0.25);
+  border: 1px solid #ff0838; border-radius: 4px; cursor: pointer;
+}
+#crash-guard button:hover { background: rgba(255, 8, 56, 0.45); }

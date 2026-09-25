@@ -248,6 +248,11 @@ export class Opponent {
     this.trail = new LightRibbon(this.scene, this.spec.color, 48, 0.55);
   }
 
+  /** weapons.js asks enemies whether they died; match the contract. */
+  isDead() {
+    return this.dead;
+  }
+
   destroy() {
     if (this.trail) {
       if (this.trail.mesh) this.scene.remove(this.trail.mesh);
