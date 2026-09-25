@@ -94,6 +94,44 @@ terminates on whatever it touches first (enemy, structure or ground), spawning
 impact flashes. The capacitor (100) drains at 42/s (lazer) + 26/s (cutter) and
 regenerates at 17/s; at zero the beams cut out. Beam kills score at 1.4x.
 
+## Android build (phone)
+
+The game ships as a native Android app: a WebView shell (`android/`) that serves
+the built Vite bundle out of the APK's own assets over the `appassets` virtual
+origin, so ES modules and absolute asset paths resolve exactly as they do on the
+web. No network needed at runtime.
+
+```bash
+# 1. build the web bundle and hand it to the Android project
+npm run build
+rm -rf android/app/src/main/assets && mkdir -p android/app/src/main/assets
+cp -r dist/* android/app/src/main/assets/
+
+# 2. build the APK (JDK 17 + Android SDK; Gradle 8.9 crashes on JBR 25)
+cd android
+JAVA_HOME="C:/Program Files/Eclipse Adoptium/jdk-17.0.20.8-hotspot" \
+ANDROID_HOME="D:/Android/SDK" \
+"D:/Apps/gradle-8.9/bin/gradle.bat" assembleDebug
+
+# 3. install on an attached phone
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.ares.grid/com.ares.grid.MainActivity
+```
+
+**Touch controls** (`src/mobile.js`): a virtual throttle/steer stick with
+climb/dive pads, FIRE / LAZER / CUTTER / BOOST hold buttons and SPECIAL /
+MORPH / CAM / PAUSE taps. They dispatch real `KeyboardEvent`s, so the touch path
+and the keyboard path are literally the same code. The layer hides itself
+outside gameplay so the native menus own the taps.
+
+**Phone profile:** fixed 1280-wide logical viewport, no MSAA, no rear-camera
+PIP (that is a second WebGL renderer), a reduced-resolution quality tier, 10 s
+spawn protection, and HUD panels that overlap the pads are retired
+automatically (modal screens are exempt).
+
+**Observability:** the shell forwards page errors and a 3 s
+`state/mode/wave/fps/tier` probe to logcat — `adb logcat -s TRONARES:*`.
+
 ## Controls
 
 | Key | Action |

@@ -4,3 +4,12 @@ dist/
 *.log
 _screenshots/
 _backup/
+
+# Android wrapper: build outputs and the copied web bundle are regenerated
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/
+*.hprof
+hs_err_pid*.log
