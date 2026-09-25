@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Phones render the desktop HUD at a fixed logical width instead of a
+      // cramped device-width viewport (the layout is built for a wide canvas).
+      (function () {
+        var touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        if (!touch) return;
+        var vp = document.querySelector('meta[name="viewport"]');
+        if (vp) vp.setAttribute('content', 'width=1280, user-scalable=no, viewport-fit=cover');
+      })();
+    </script>
+    <meta name="description" content="Tron: Ares - 9-vehicle grid combat simulator: Lightcycle, Light Jet, Heavy Jet, VTOL, Hyper Speeder plus the film fleet - Jump Jet, DART tank, Light Skimmer and Light Drone - over a 16-district solid grid." />
+    <title>TRON: ARES // PROTOCOL OVERRIDE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script type="module" crossorigin src="/assets/index-TmOTc1ic.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-9fVOyPna.css">
+  </head>
+  <body>
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Damage vignette (screen-space, sits above the canvas) -->
+    <div id="damage-vignette"></div>
+
+    <!-- Wave / event banner -->
+    <div id="wave-banner" class="hidden">
+      <div id="wave-banner-title">WAVE 01</div>
+      <div id="wave-banner-sub">MCP PURSUER PACK</div>
+    </div>
+
+    <!-- UI Overlay Layer -->
+    <div id="hud-overlay" class="hud-container">
+
+      <!-- Top Status Bar -->
+      <header class="hud-topbar">
+        <div class="hud-brand">
+          <div class="ares-logo-icon"></div>
+          <div class="brand-text">
+            <span class="brand-title">TRON <span class="highlight-red">ARES</span></span>
+            <span class="brand-sub">GRID PROTOCOL // 9-VEHICLE TRANSFORM ONLINE</span>
+          </div>
+        </div>
+
+        <div class="hud-center-stats">
+          <div class="stat-pill">
+            <span class="stat-label">DEREZZED</span>
+            <span id="kill-count" class="stat-value highlight-red">00</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-label">WAVE</span>
+            <span id="wave-number" class="stat-value">01</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-label">GRID SCORE</span>
+            <span id="score-display" class="stat-value">000000</span>
+          </div>
+          <div class="stat-pill" id="combo-pill">
+            <span class="stat-label">COMBO</span>
+            <span id="combo-value" class="stat-value">×1</span>
+          </div>
+        </div>
+
+        <div class="hud-top-actions">
+          <button id="btn-audio-toggle" class="hud-btn" title="Toggle Tron Synth Soundtrack & SFX [M]">
+            <span class="btn-icon">🔊</span> AUDIO: <span id="audio-status">ON</span>
+          </button>
+          <button id="btn-camera-view" class="hud-btn" title="Cycle Camera Angle [C]">
+            <span class="btn-icon">📷</span> CAM: <span id="cam-status">CHASE</span>
+          </button>
+          <button id="btn-help-toggle" class="hud-btn" title="Help & Controls [H]">
+            <span class="btn-icon">⌨</span> CONTROLS
+          </button>
+          <button id="btn-pause" class="hud-btn" title="Pause Simulation [ESC]">
+            <span class="btn-icon">⏸</span> PAUSE
+          </button>
+        </div>
+      </header>
+
+      <!-- Tactical Rear-View Mirror / Camera PIP -->
+      <div id="rear-camera-viewport" class="rear-pip-container">
+        <div class="rear-pip-header">
+          <span class="rear-pip-tag">REAR TACTICAL CAM [REAR FIRE ACTIVE]</span>
+          <span class="rear-pip-status blink-anim">LIVE FEED</span>
+        </div>
+        <div class="rear-canvas-wrap">
+          <canvas id="rear-canvas"></canvas>
+          <div class="rear-pip-crosshair"></div>
+          <div class="rear-warning-tag" id="rear-threat-warning">PURSUER DETECTED! FIRE REAR LASERS [E]</div>
+        </div>
+      </div>
+
+      <!-- Center Flight / Combat Reticle & Threat Indicators -->
+      <div id="crosshair-hud" class="center-crosshair">
+        <div class="crosshair-ring"></div>
+        <div class="crosshair-dot"></div>
+        <div id="target-lock-box" class="target-box hidden">
+          <div class="lock-bracket tl"></div>
+          <div class="lock-bracket tr"></div>
+          <div class="lock-bracket bl"></div>
+          <div class="lock-bracket br"></div>
+          <span id="lock-target-name" class="lock-name">TARGET LOCK</span>
+          <span id="lock-target-dist" class="lock-dist">142M</span>
+        </div>
+        <!-- Horizon Ladder in flight modes -->
+        <div id="artificial-horizon" class="horizon-ladder hidden">
+          <div class="pitch-line pitch-up"></div>
+          <div class="pitch-line horizon-center"></div>
+          <div class="pitch-line pitch-down"></div>
+        </div>
+      </div>
+
+      <!-- Left Tactical Panel: shields, boost, vehicle configuration -->
+      <div class="hud-left-panel">
+        <div class="gauge-card">
+          <div class="gauge-header">
+            <span>ARES CORE INTEGRITY</span>
+            <span id="shield-val-text">100%</span>
+          </div>
+          <div class="gauge-bar-track">
+            <div id="shield-bar-fill" class="gauge-bar-fill shield-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <div class="gauge-card">
+          <div class="gauge-header">
+            <span>BOOST THRUSTER [SHIFT]</span>
+            <span id="boost-val-text">READY</span>
+          </div>
+          <div class="gauge-bar-track">
+            <div id="boost-bar-fill" class="gauge-bar-fill boost-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Vehicle Configuration: 5 transformable modes -->
+        <div class="mode-indicator-box">
+          <div class="mode-tag">VEHICLE CONFIGURATION [F] CYCLE — [1-9] DIRECT</div>
+
+          <div class="mode-selector">
+            <div class="mode-card active" data-mode="CYCLE" title="Lightcycle - fast ground interceptor">
+              <span class="mc-icon">🏍️</span>
+              <span class="mc-name">LIGHTCYCLE</span>
+              <span class="mc-key">1</span>
+            </div>
+            <div class="mode-card" data-mode="JET" title="Light Jet - aerial dogfighter">
+              <span class="mc-icon">✈️</span>
+              <span class="mc-name">LIGHT JET</span>
+              <span class="mc-key">2</span>
+            </div>
+            <div class="mode-card" data-mode="HEAVY" title="Heavy Jet - armoured bomber gunship">
+              <span class="mc-icon">🛩️</span>
+              <span class="mc-name">HEAVY JET</span>
+              <span class="mc-key">3</span>
+            </div>
+            <div class="mode-card" data-mode="VTOL" title="VTOL Gunship - hover and strafe">
+              <span class="mc-icon">🚁</span>
+              <span class="mc-name">VTOL</span>
+              <span class="mc-key">4</span>
+            </div>
+            <div class="mode-card" data-mode="HYPER" title="Hyper Speeder - ultra-fast interceptor">
+              <span class="mc-icon">⚡</span>
+              <span class="mc-name">HYPER</span>
+              <span class="mc-key">5</span>
+            </div>
+            <div class="mode-card" data-mode="JUMPJET" title="Jump Jet (TRON: Ares) - four ribbon wings, Red Guard">
+              <span class="mc-icon">🛫</span>
+              <span class="mc-name">JUMP JET</span>
+              <span class="mc-key">6</span>
+            </div>
+            <div class="mode-card" data-mode="DART" title="DART (TRON: Ares) - Amphibious Rapid Response Tank">
+              <span class="mc-icon">🛡️</span>
+              <span class="mc-name">DART</span>
+              <span class="mc-key">7</span>
+            </div>
+            <div class="mode-card" data-mode="SKIMMER" title="Light Skimmer (TRON: Ares) - surface skim + submersible">
+              <span class="mc-icon">🛶</span>
+              <span class="mc-name">SKIMMER</span>
+              <span class="mc-key">8</span>
+            </div>
+            <div class="mode-card" data-mode="LIGHTDRONE" title="Light Drone (TRON: Ares) - baton-rezzed attack drone">
+              <span class="mc-icon">🛸</span>
+              <span class="mc-name">LIGHT DRONE</span>
+              <span class="mc-key">9</span>
+            </div>
+          </div>
+
+          <div class="vehicle-spec-box">
+            <div class="vs-name-row">
+              <span id="active-vehicle-name">🏍️ LIGHTCYCLE</span>
+              <span id="vehicle-role-text" class="vs-role">GRID COMBAT &amp; DRIFT</span>
+            </div>
+            <div class="vs-stat-row">
+              <span class="vs-stat-label">SPD</span>
+              <div class="vs-track"><div id="vstat-spd" class="vs-fill spd"></div></div>
+              <span class="vs-stat-label">AGI</span>
+              <div class="vs-track"><div id="vstat-agi" class="vs-fill agi"></div></div>
+              <span class="vs-stat-label">ARM</span>
+              <div class="vs-track"><div id="vstat-arm" class="vs-fill arm"></div></div>
+            </div>
+          </div>
+
+          <button id="btn-transform-action" class="transform-btn">
+            <span class="transform-key">[F]</span> TRANSFORM VEHICLE
+          </button>
+        </div>
+      </div>
+
+      <!-- Right Tactical Panel: speed, altitude, weapons -->
+      <div class="hud-right-panel">
+
+        <div class="speed-cluster">
+          <div class="speed-value-wrap">
+            <span id="speed-digits" class="speed-number">000</span>
+            <span class="speed-unit">KM/H</span>
+          </div>
+          <div class="alt-value-wrap" id="altimeter-wrap">
+            <span class="alt-label">ALT</span>
+            <span id="alt-digits" class="alt-number">005</span>
+            <span class="alt-unit">M</span>
+          </div>
+          <div class="speed-meter-arc">
+            <div id="speed-meter-fill" class="speed-fill-arc"></div>
+          </div>
+        </div>
+
+        <!-- Boss integrity bar (Recognizer) -->
+        <div id="boss-bar" class="boss-bar">
+          <div class="boss-header">
+            <span>⚠ MCP RECOGNIZER</span>
+            <span id="boss-name">RECOGNIZER</span>
+          </div>
+          <div class="boss-track"><div id="boss-fill" class="boss-fill" style="width: 100%;"></div></div>
+        </div>
+
+        <!-- Weapon System Status (loadout changes per vehicle) -->
+        <div class="weapons-cluster">
+          <div class="weapon-slot active">
+            <div class="weapon-icon">⚡</div>
+            <div class="weapon-details">
+              <div class="weapon-title-row">
+                <span id="front-name" class="weapon-name">PULSE LASER</span>
+                <span class="weapon-key">[SPACE] / [L-CLICK]</span>
+              </div>
+              <div class="weapon-recharge-track">
+                <div id="front-laser-bar" class="weapon-recharge-fill front-fill" style="width: 100%;"></div>
+              </div>
+              <span class="weapon-note">FORWARD CANNONS</span>
+            </div>
+          </div>
+
+          <div class="weapon-slot active rear-weapon-slot">
+            <div class="weapon-icon">🔴</div>
+            <div class="weapon-details">
+              <div class="weapon-title-row">
+                <span id="rear-name" class="weapon-name highlight-red">REAR PULSE LASER</span>
+                <span class="weapon-key">[E] / [R-CLICK]</span>
+              </div>
+              <div class="weapon-recharge-track">
+                <div id="rear-laser-bar" class="weapon-recharge-fill rear-fill" style="width: 100%;"></div>
+              </div>
+              <span class="weapon-note">ANTI-PURSUER REAR DEFENSE</span>
+            </div>
+          </div>
+
+          <div class="weapon-slot beam-slot">
+            <div class="weapon-icon">🔺</div>
+            <div class="weapon-details">
+              <div class="weapon-title-row">
+                <span class="weapon-name highlight-red">PARTICLE LAZER</span>
+                <span class="weapon-key">[Z]</span>
+              </div>
+              <div class="weapon-recharge-track">
+                <div id="beam-charge-bar" class="weapon-recharge-fill beam-fill" style="width: 100%;"></div>
+              </div>
+              <span class="weapon-note">HELD BEAM // CUTS THROUGH HULLS</span>
+            </div>
+          </div>
+
+          <div class="weapon-slot beam-slot">
+            <div class="weapon-icon">✳</div>
+            <div class="weapon-details">
+              <div class="weapon-title-row">
+                <span class="weapon-name">RIBBON CUTTER</span>
+                <span class="weapon-key">[X]</span>
+              </div>
+              <div class="weapon-recharge-track">
+                <div id="beam-charge-bar-2" class="weapon-recharge-fill beam-fill-2" style="width: 100%;"></div>
+              </div>
+              <span class="weapon-note">WIDE SWEEP BEAM</span>
+            </div>
+          </div>
+
+          <div class="weapon-slot">
+            <div class="weapon-icon">💠</div>
+            <div class="weapon-details">
+              <div class="weapon-title-row">
+                <span id="special-name" class="weapon-name">EMP DISCHARGE</span>
+                <span id="special-key" class="weapon-key">[Q]</span>
+              </div>
+              <div class="weapon-recharge-track">
+                <div id="special-bar" class="weapon-recharge-fill emp-fill" style="width: 100%;"></div>
+              </div>
+              <span id="special-note" class="weapon-note">360° PURSUER DISRUPTION</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Command Bar -->
+      <div class="hud-bottom-bar">
+        <div id="combat-alert" class="combat-alert-banner">
+          <span id="alert-text">INITIALIZING ARES SYSTEMS... WELCOME TO THE GRID.</span>
+        </div>
+        <div id="fps-counter" class="fps-counter">60 FPS</div>
+      </div>
+
+      <!-- Mobile Touch Controls (shown only on touch devices) -->
+      <div id="touch-controls" class="touch-overlay hidden">
+        <div class="touch-left-dpad">
+          <button id="touch-up" class="touch-btn">▲</button>
+          <div class="touch-horizontal">
+            <button id="touch-left" class="touch-btn">◀</button>
+            <button id="touch-right" class="touch-btn">▶</button>
+          </div>
+          <button id="touch-down" class="touch-btn">▼</button>
+        </div>
+        <div class="touch-right-actions">
+          <button id="touch-rear-laser" class="touch-btn touch-btn-rear">🔴 REAR LASER</button>
+          <button id="touch-front-laser" class="touch-btn touch-btn-front">⚡ FRONT LASER</button>
+          <button id="touch-transform" class="touch-btn touch-btn-mode">✈️ TRANSFORM</button>
+          <button id="touch-boost" class="touch-btn touch-btn-boost">🚀 BOOST</button>
+        </div>
+      </div>
+
+      <!-- Pause Overlay -->
+      <div id="pause-overlay" class="pause-overlay hidden">
+        <div class="pause-card">
+          <h2 class="pause-title">SIMULATION <span class="highlight-red">PAUSED</span></h2>
+          <div class="pause-buttons">
+            <button id="btn-resume" class="primary-action-btn"><span class="btn-text">RESUME [ESC]</span></button>
+            <button id="btn-restart" class="secondary-action-btn">RESTART RUN</button>
+            <button id="btn-quit" class="secondary-action-btn">RETURN TO MENU</button>
+          </div>
+          <div class="pause-hint">TIP: rear lasers score 1.5× — chase kills build your combo multiplier up to ×5.</div>
+        </div>
+      </div>
+
+      <!-- Start Screen / Game Over / Help Modal -->
+      <div id="modal-screen" class="modal-backdrop">
+        <div class="modal-card">
+          <div class="modal-glow-line"></div>
+          <h1 class="modal-title">TRON: <span class="highlight-red">ARES</span></h1>
+          <p class="modal-subtitle">GRID INVASION PROTOCOL // 9-VEHICLE COMBAT SIMULATOR</p>
+
+          <div class="feature-highlights">
+            <div class="feature-item">
+              <div class="feature-icon">🏍️</div>
+              <div class="feature-text">
+                <strong>CRIMSON LIGHTCYCLE</strong>
+                <span>High-velocity ground racing with a lethal light-ribbon trail and drift dynamics.</span>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">✈️</div>
+              <div class="feature-text">
+                <strong>LIGHT JET / HEAVY JET</strong>
+                <span>Aerial dogfighting, homing missile salvos and a four-engine armoured bomber with area bombs.</span>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🚁</div>
+              <div class="feature-text">
+                <strong>VTOL GUNSHIP / HYPER SPEEDER</strong>
+                <span>Hover-strafe with rocket barrages, or burn the grid at 700 km/h with an invulnerable overdrive surge.</span>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🔴</div>
+              <div class="feature-text">
+                <strong class="highlight-red">REAR-FIRING LASER TURRETS</strong>
+                <span>Obliterate MCP pursuers chasing behind you using the live rear tactical camera.</span>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🛡️</div>
+              <div class="feature-text">
+                <strong class="highlight-red">TRON: ARES FLEET</strong>
+                <span>The film's Dillinger Grid vehicles: JUMP JET (4 ribbon wings), DART tank (M-1 rifle + twin M240s, Light Ram plough), LIGHT SKIMMER (submersible) and the LIGHT DRONE.</span>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">👾</div>
+              <div class="feature-text">
+                <strong>MCP ENEMY FORCES</strong>
+                <span>Pursuer cycles, air interceptors, kamikaze drone swarms, hover gunships — and the RECOGNIZER boss every 4th wave.</span>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🏙️</div>
+              <div class="feature-text">
+                <strong>THE GRID — 36 DISTRICTS, 9 SECTORS</strong>
+                <span>Grid arena, megacity, canyon race channel, data farm, sky pillars, the Sea of Simulation, elevated highway with tunnels, monument plaza and derezzed ruins — all solid, with launch ramps.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="scenario-block">
+            <div class="scenario-label">SELECT PROTOCOL</div>
+            <div class="scenario-row">
+              <button class="scenario-btn active" data-scenario="SURVIVAL">SURVIVAL COMBAT</button>
+              <button class="scenario-btn" data-scenario="CHASE">HIGHWAY CHASE</button>
+              <button class="scenario-btn" data-scenario="FREE">FREE FLIGHT ROAM</button>
+            </div>
+            <div id="scenario-desc" class="scenario-desc">Wave-based MCP assault. Clear every wave to escalate. Every 4th wave deploys a RECOGNIZER.</div>
+          </div>
+
+          <div class="keybinds-summary">
+            <div class="keybind-row"><span class="k-key">W / S</span><span>Throttle / Brake (ground) — Throttle (air)</span></div>
+            <div class="keybind-row"><span class="k-key">A / D</span><span>Steer / Bank Turn</span></div>
+            <div class="keybind-row"><span class="k-key">↑ / ↓</span><span>Climb / Dive (flight modes)</span></div>
+            <div class="keybind-row"><span class="k-key">SPACE / L-CLICK</span><span>Fire Forward Weapon</span></div>
+            <div class="keybind-row"><span class="k-key">E / R-CLICK</span><span class="highlight-red">Fire Rear Lasers (Targets Pursuers!)</span></div>
+            <div class="keybind-row"><span class="k-key">Q</span><span>Special: EMP · Missiles · Bombs · Barrage · Overdrive · 4× Ribbon · Light Ram · Submerge · Cloak</span></div>
+            <div class="keybind-row"><span class="k-key">Z / M-CLICK</span><span class="highlight-red">Particle Lazer — sustained crimson beam</span></div>
+            <div class="keybind-row"><span class="k-key">X</span><span>Ribbon Cutter — sustained wide sweep beam</span></div>
+            <div class="keybind-row"><span class="k-key">1 – 9</span><span>Direct vehicle select — [F] cycles all nine</span></div>
+            <div class="keybind-row"><span class="k-key">SHIFT</span><span>Overdrive Boost Thruster</span></div>
+            <div class="keybind-row"><span class="k-key">C / H / M / R</span><span>Camera / Help / Mute / Grid Recall (unstick)</span></div>
+            <div class="keybind-row"><span class="k-key">ESC / P</span><span>Pause simulation</span></div>
+          </div>
+
+          <div class="modal-button-row">
+            <button id="btn-start-game" class="primary-action-btn">
+              <span class="btn-text">ENTER THE GRID</span>
+              <span class="btn-flare"></span>
+            </button>
+          </div>
+
+          <div class="modal-footer-notes">
+            <span>BEST GRID SCORE: <span id="best-score">000000</span></span>
+            <span>Powered by Three.js WebGL &amp; Web Audio Synthesizer Engine</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </body>
+</html>

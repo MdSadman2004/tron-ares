@@ -3,6 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Phones render the desktop HUD at a fixed logical width instead of a
+      // cramped device-width viewport (the layout is built for a wide canvas).
+      (function () {
+        var touch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        if (!touch) return;
+        var vp = document.querySelector('meta[name="viewport"]');
+        if (vp) vp.setAttribute('content', 'width=1280, user-scalable=no, viewport-fit=cover');
+      })();
+    </script>
     <meta name="description" content="Tron: Ares - 9-vehicle grid combat simulator: Lightcycle, Light Jet, Heavy Jet, VTOL, Hyper Speeder plus the film fleet - Jump Jet, DART tank, Light Skimmer and Light Drone - over a 16-district solid grid." />
     <title>TRON: ARES // PROTOCOL OVERRIDE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -394,7 +404,7 @@
             <div class="feature-item">
               <div class="feature-icon">🏙️</div>
               <div class="feature-text">
-                <strong>THE GRID — 16 DISTRICTS</strong>
+                <strong>THE GRID — 36 DISTRICTS, 9 SECTORS</strong>
                 <span>Grid arena, megacity, canyon race channel, data farm, sky pillars, the Sea of Simulation, elevated highway with tunnels, monument plaza and derezzed ruins — all solid, with launch ramps.</span>
               </div>
             </div>

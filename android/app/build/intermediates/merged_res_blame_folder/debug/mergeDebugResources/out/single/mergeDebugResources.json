@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.ares.grid.app-debug-12:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.ares.grid.app-main-14:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.ares.grid.app-debug-12:/drawable_ic_launcher_foreground.xml.flat",
+        "source": "com.ares.grid.app-main-14:/drawable/ic_launcher_foreground.xml"
+    }
+]

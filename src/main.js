@@ -13,6 +13,7 @@ import { TronWorld } from './world.js';
 import { TronHUD } from './hud.js';
 import { PickupSystem, PICKUP_TYPES } from './pickups.js';
 import { audio } from './audio.js';
+import { installTouchControls } from './mobile.js';
 
 /**
  * TRON: ARES — PROTOCOL OVERRIDE
@@ -98,6 +99,9 @@ class TronAresGame {
     // Expose for diagnostics / automated tests
     window.__TRON__ = this;
 
+    // Touch layer for phones / tablets (dispatches real key events)
+    this.touch = installTouchControls(this);
+
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
   }
@@ -128,7 +132,12 @@ class TronAresGame {
     this.camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 1400);
     this.camera.position.set(0, 5, 12);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    // MSAA is a fill-rate luxury: phones get a clean alias-free-ish buffer by
+    // rendering below native and scaling up instead.
+    this.renderer = new THREE.WebGLRenderer({
+      antialias: !window.__TRON_PHONE__,
+      powerPreference: 'high-performance'
+    });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1005,7 +1014,7 @@ class TronAresGame {
     this.perf.checkTimer = 2.0;
 
     const fps = this.perf.fps;
-    if (fps < 42 && this.perf.tier < 2) this.applyQuality(++this.perf.tier);
+    if (fps < 42 && this.perf.tier < 3) this.applyQuality(++this.perf.tier);
     else if (fps > 58 && this.perf.tier > 0) this.applyQuality(--this.perf.tier);
   }
 
@@ -1017,9 +1026,14 @@ class TronAresGame {
     } else if (tier === 1) {
       this.renderer.setPixelRatio(1.25);
       this.bloomPass.enabled = true;
-    } else {
+    } else if (tier === 2) {
       this.renderer.setPixelRatio(1.0);
       this.bloomPass.enabled = false;
+    } else {
+      // Phone-class hardware: resolution below 1x and no full-screen extras
+      this.renderer.setPixelRatio(0.75);
+      this.bloomPass.enabled = false;
+      if (this.glitchPass) this.glitchPass.enabled = false;
     }
   }
 

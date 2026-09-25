@@ -67,6 +67,13 @@ export class TronHUD {
 
   // ------------------------------------------------------------------
   initRearCamera() {
+    // Phones cannot afford a second WebGL renderer for the rear camera PIP.
+    if (window.__TRON_PHONE__) {
+      const pip = document.getElementById('rear-camera-viewport');
+      if (pip) pip.style.display = 'none';
+      return;
+    }
+
     this.rearCanvas = document.getElementById('rear-canvas');
     if (!this.rearCanvas) return;
 
