@@ -13,3 +13,8 @@ android/local.properties
 android/app/src/main/assets/
 *.hprof
 hs_err_pid*.log
+
+# Release secrets — never commit these
+android/keystore/
+*.jks
+*.keystore

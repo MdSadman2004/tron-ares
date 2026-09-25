@@ -127,6 +127,20 @@ Asphalt-style touch driving: the machine flies itself, you just tap.
 Autopilot navigates the grid, avoids structures, holds altitude in flight modes
 and keeps the map edge from ending your run.
 
+## Play Store release
+
+```bash
+bash android/tools/release.sh     # keystore (first run) + signed .aab + verification
+bash android/tools/final-qa.sh    # installs the release build and runs a hands-free soak
+```
+
+Outputs: `android/app/build/outputs/bundle/release/app-release.aab` (Play) and
+`android/app/build/outputs/apk/release/app-release.apk` (sideload).
+The upload keystore lives in `android/keystore/` — **git-ignored, back it up**.
+
+Store art, listing copy, privacy policy and the step-by-step Play checklist:
+`D:/Outputs/TronAres-Play/`.
+
 ## Android build (phone)
 
 The game ships as a native Android app: a WebView shell (`android/`) that serves
