@@ -202,7 +202,7 @@ export class TronWorld {
     this.scene.add(aresCoreLight);
 
     // thinner fog: the map is 5x larger than it was, and 0.0035 hid all of it.
-    this.scene.fog = new THREE.FogExp2(0x0a0206, 0.0011);   // 4960-wide map: keep landmarks legible
+    this.scene.fog = new THREE.FogExp2(0x0a0206, 0.0017);
   }
 
   // ==================================================================
@@ -624,7 +624,7 @@ export class TronWorld {
   buildRiftRuins(c) {
     const rift = new THREE.Mesh(
       new THREE.TorusGeometry(120, 6, 10, 40),
-      new THREE.MeshBasicMaterial({ color: 0xb46bff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, fog: true })
+      new THREE.MeshBasicMaterial({ color: 0xb46bff, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false })
     );
     rift.position.set(c.x, 70, c.z);
     rift.rotation.y = Math.PI / 2.6;
@@ -646,36 +646,17 @@ export class TronWorld {
     const H = 420;
     const tower = new THREE.Mesh(
       new THREE.CylinderGeometry(26, 54, H, 6),
-      new THREE.MeshStandardMaterial({
-        color: 0x121a22, roughness: 0.3, metalness: 0.9,
-        emissive: 0x00b8d4, emissiveIntensity: 0.55      // reads through fog
-      })
+      new THREE.MeshStandardMaterial({ color: 0x0b0f14, roughness: 0.3, metalness: 0.9 })
     );
     tower.position.set(c.x, H / 2, c.z);
     this.scene.add(tower);
     this.towerMesh = tower;
-
-    // lit spine: the landmark has to be visible from across the map
-    const spine = new THREE.Mesh(
-      new THREE.BoxGeometry(9, H, 9),
-      new THREE.MeshBasicMaterial({ color: 0x9ff6ff, fog: true })
-    );
-    spine.position.set(c.x, H / 2, c.z - 40);
-    this.scene.add(spine);
-    for (const sx of [-1, 1]) {
-      const edge = new THREE.Mesh(
-        new THREE.BoxGeometry(4, H * 0.94, 4),
-        new THREE.MeshBasicMaterial({ color: 0x00f0ff, fog: true })
-      );
-      edge.position.set(c.x + sx * 40, H * 0.47, c.z + 26);
-      this.scene.add(edge);
-    }
     this.addCollider(c.x - 54, c.x + 54, c.z - 54, c.z + 54, 0, H);
 
     for (let i = 1; i <= 5; i++) {
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(58 - i * 2, 2.2, 6, 26),
-        new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false, fog: true })
+        new THREE.MeshBasicMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false })
       );
       ring.rotation.x = Math.PI / 2;
       ring.position.set(c.x, 40 + i * 76, c.z);
@@ -684,10 +665,10 @@ export class TronWorld {
 
     // the uplink beam
     const beam = new THREE.Mesh(
-      new THREE.CylinderGeometry(5, 8, 520, 10, 1, true),
-      new THREE.MeshBasicMaterial({ color: 0x9ff6ff, transparent: true, opacity: 0.11, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: true })
+      new THREE.CylinderGeometry(9, 14, 900, 10, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0x9ff6ff, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
     );
-    beam.position.set(c.x, H + 250, c.z);
+    beam.position.set(c.x, H + 440, c.z);
     this.scene.add(beam);
     this.uplinkBeam = beam;
 

@@ -1,0 +1,1651 @@
+/* ===================================================================
+   TRON: ARES - CYBER HUD & SCI-FI DESIGN SYSTEM
+   Theme: Crimson Grid & Neon Cyan Glassmorphism
+   =================================================================== */
+
+:root {
+  --neon-red: #ff0838;
+  --neon-red-glow: rgba(255, 8, 56, 0.6);
+  --neon-red-dark: #660012;
+  --neon-cyan: #00f0ff;
+  --neon-cyan-glow: rgba(0, 240, 255, 0.5);
+  --neon-amber: #ffaa00;
+  --neon-amber-glow: rgba(255, 170, 0, 0.5);
+  --bg-deep: #020204;
+  --panel-bg: rgba(6, 8, 14, 0.75);
+  --panel-border: rgba(0, 240, 255, 0.3);
+  --panel-border-red: rgba(255, 8, 56, 0.5);
+  --font-display: 'Orbitron', -apple-system, sans-serif;
+  --font-tech: 'Rajdhani', -apple-system, sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-deep);
+  color: #e0f4ff;
+  font-family: var(--font-tech);
+  font-size: 16px;
+}
+
+/* 3D WebGL Canvas Layer */
+#canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+#canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* HUD Overlay Layer */
+.hud-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Enable pointer events on interactive HUD controls */
+.hud-btn, .rear-pip-container, .mode-toggle-group, .transform-btn, .modal-card, .touch-overlay {
+  pointer-events: auto;
+}
+
+/* -------------------------------------------------------------
+   TOP STATUS BAR
+   ------------------------------------------------------------- */
+.hud-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(2, 4, 10, 0.85) 0%, rgba(2, 4, 10, 0) 100%);
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+}
+
+.hud-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ares-logo-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--neon-red);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  box-shadow: 0 0 15px var(--neon-red);
+  animation: pulseLogo 2s infinite ease-in-out;
+}
+
+@keyframes pulseLogo {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); filter: drop-shadow(0 0 10px #ff0838); }
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.brand-sub {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 6px var(--neon-cyan-glow);
+}
+
+.highlight-red {
+  color: var(--neon-red) !important;
+  text-shadow: 0 0 10px var(--neon-red-glow) !important;
+}
+
+/* Center Stat Pills */
+.hud-center-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(8, 12, 20, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 6px 18px;
+  border-radius: 4px;
+  backdrop-filter: blur(8px);
+}
+
+.stat-label {
+  font-size: 0.65rem;
+  letter-spacing: 1.5px;
+  color: rgba(224, 244, 255, 0.6);
+  font-family: var(--font-mono);
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan-glow);
+}
+
+/* Top Action Buttons */
+.hud-top-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.hud-btn {
+  background: rgba(10, 15, 25, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: #b0e5ff;
+  font-family: var(--font-tech);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(6px);
+}
+
+.hud-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--neon-cyan);
+  color: #fff;
+  box-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+.hud-btn:active {
+  transform: scale(0.96);
+}
+
+/* -------------------------------------------------------------
+   TACTICAL REAR-VIEW MIRROR / CAMERA PIP (User requested feature!)
+   ------------------------------------------------------------- */
+.rear-pip-container {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 120px;
+  background: rgba(2, 4, 10, 0.88);
+  border: 2px solid var(--neon-red);
+  border-radius: 6px;
+  box-shadow: 0 0 20px rgba(255, 8, 56, 0.4), inset 0 0 15px rgba(255, 8, 56, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.rear-pip-container:hover {
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 8, 56, 0.7);
+}
+
+.rear-pip-header {
+  height: 22px;
+  background: linear-gradient(90deg, #660015, #110006);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid var(--neon-red);
+}
+
+.rear-pip-tag {
+  color: #ff99aa;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.rear-pip-status {
+  color: var(--neon-red);
+  font-weight: 900;
+}
+
+.blink-anim {
+  animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; text-shadow: 0 0 8px var(--neon-red); }
+}
+
+.rear-canvas-wrap {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+#rear-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.rear-pip-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border: 1px dashed rgba(255, 8, 56, 0.6);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.rear-pip-crosshair::before, .rear-pip-crosshair::after {
+  content: '';
+  position: absolute;
+  background: var(--neon-red);
+}
+
+.rear-pip-crosshair::before {
+  top: 50%;
+  left: -6px;
+  right: -6px;
+  height: 1px;
+}
+
+.rear-pip-crosshair::after {
+  left: 50%;
+  top: -6px;
+  bottom: -6px;
+  width: 1px;
+}
+
+.rear-warning-tag {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 8, 56, 0.85);
+  color: #fff;
+  font-size: 0.6rem;
+  font-family: var(--font-mono);
+  padding: 2px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+  letter-spacing: 1px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.rear-warning-tag.visible {
+  opacity: 1;
+  animation: pulseAlert 0.5s infinite alternate;
+}
+
+@keyframes pulseAlert {
+  0% { transform: translateX(-50%) scale(0.95); }
+  100% { transform: translateX(-50%) scale(1.05); }
+}
+
+/* -------------------------------------------------------------
+   CENTER COMBAT / FLIGHT HUD
+   ------------------------------------------------------------- */
+.center-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.crosshair-ring {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.crosshair-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--neon-cyan);
+  box-shadow: 0 0 6px var(--neon-cyan);
+  border-radius: 50%;
+}
+
+/* Target Lock-On Indicator */
+.target-box {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border: 1px solid var(--neon-red);
+  box-shadow: 0 0 12px var(--neon-red-glow);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 4px;
+  transition: transform 0.1s linear;
+}
+
+.target-box.hidden {
+  display: none;
+}
+
+.lock-name {
+  font-size: 0.6rem;
+  color: var(--neon-red);
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+}
+
+.lock-dist {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-display);
+}
+
+/* Flight Mode Horizon Ladder */
+.horizon-ladder {
+  position: absolute;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  transition: opacity 0.3s ease;
+}
+
+.horizon-ladder.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pitch-line {
+  height: 2px;
+  background: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 4px var(--neon-cyan);
+}
+
+.pitch-up {
+  width: 60px;
+}
+
+.horizon-center {
+  width: 140px;
+  background: var(--neon-cyan);
+}
+
+.pitch-down {
+  width: 60px;
+}
+
+/* -------------------------------------------------------------
+   LEFT TACTICAL PANEL (Hull, Boost, Transformation)
+   ------------------------------------------------------------- */
+.hud-left-panel {
+  position: absolute;
+  bottom: 60px;
+  left: 20px;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gauge-card {
+  background: var(--panel-bg);
+  border-left: 3px solid var(--neon-cyan);
+  border-top: 1px solid rgba(0, 240, 255, 0.2);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  border-right: 1px solid rgba(0, 240, 255, 0.1);
+  padding: 10px 14px;
+  border-radius: 2px;
+  backdrop-filter: blur(10px);
+}
+
+.gauge-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #b0e5ff;
+  margin-bottom: 6px;
+}
+
+.gauge-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 20, 35, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.gauge-bar-fill {
+  height: 100%;
+  transition: width 0.15s ease-out;
+}
+
+.shield-fill {
+  background: linear-gradient(90deg, #0088cc, var(--neon-cyan));
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.shield-fill.low {
+  background: linear-gradient(90deg, #ff0033, #ff4400);
+  box-shadow: 0 0 10px var(--neon-red);
+}
+
+.boost-fill {
+  background: linear-gradient(90deg, #ff8800, var(--neon-amber));
+  box-shadow: 0 0 8px var(--neon-amber);
+}
+
+/* Mode Indicator & Transformer */
+.mode-indicator-box {
+  background: var(--panel-bg);
+  border: 1px solid rgba(255, 8, 56, 0.35);
+  border-radius: 4px;
+  padding: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.mode-tag {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: #ff99aa;
+  font-family: var(--font-mono);
+  margin-bottom: 8px;
+}
+
+.mode-toggle-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mode-badge {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(15, 20, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  opacity: 0.5;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.mode-badge.active {
+  opacity: 1;
+  background: rgba(255, 8, 56, 0.15);
+  border-color: var(--neon-red);
+  box-shadow: 0 0 12px rgba(255, 8, 56, 0.4);
+}
+
+.badge-icon {
+  font-size: 1.2rem;
+}
+
+.badge-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.mode-name {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.mode-desc {
+  font-size: 0.6rem;
+  color: #a0c0d8;
+  letter-spacing: 0.5px;
+}
+
+.transform-btn {
+  width: 100%;
+  background: linear-gradient(90deg, #880018, var(--neon-red));
+  border: 1px solid #ff4466;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 10px 0;
+  cursor: pointer;
+  border-radius: 3px;
+  box-shadow: 0 0 15px rgba(255, 8, 56, 0.5);
+  transition: all 0.2s ease;
+}
+
+.transform-btn:hover {
+  background: linear-gradient(90deg, var(--neon-red), #ff4466);
+  box-shadow: 0 0 25px rgba(255, 8, 56, 0.8);
+  transform: translateY(-1px);
+}
+
+.transform-btn:active {
+  transform: translateY(1px);
+}
+
+.transform-key {
+  color: #ffcccc;
+  margin-right: 4px;
+}
+
+/* -------------------------------------------------------------
+   RIGHT TACTICAL PANEL (Speedometer, Altimeter, Weapons)
+   ------------------------------------------------------------- */
+.hud-right-panel {
+  position: absolute;
+  bottom: 60px;
+  right: 20px;
+  width: 290px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Speed Cluster */
+.speed-cluster {
+  background: var(--panel-bg);
+  border-right: 3px solid var(--neon-cyan);
+  border-top: 1px solid rgba(0, 240, 255, 0.2);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  border-left: 1px solid rgba(0, 240, 255, 0.1);
+  padding: 14px;
+  border-radius: 2px;
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.speed-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.speed-number {
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 15px var(--neon-cyan-glow);
+}
+
+.speed-unit {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #88ccee;
+  letter-spacing: 1px;
+}
+
+.alt-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  border-left: 1px solid rgba(0, 240, 255, 0.2);
+  padding-left: 12px;
+}
+
+.alt-label {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: #77b0d0;
+}
+
+.alt-number {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.alt-unit {
+  font-size: 0.7rem;
+  color: #77b0d0;
+}
+
+/* Weapons Cluster */
+.weapons-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.weapon-slot {
+  background: var(--panel-bg);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 3px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.rear-weapon-slot {
+  border-color: var(--neon-red);
+  background: rgba(30, 5, 10, 0.7);
+  box-shadow: 0 0 12px rgba(255, 8, 56, 0.25);
+}
+
+.rear-weapon-slot:hover {
+  box-shadow: 0 0 20px rgba(255, 8, 56, 0.5);
+}
+
+.weapon-icon {
+  font-size: 1.2rem;
+}
+
+.weapon-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.weapon-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weapon-name {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.weapon-key {
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: #99ccff;
+}
+
+.weapon-recharge-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(10, 15, 25, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.weapon-recharge-fill {
+  height: 100%;
+}
+
+.rear-fill {
+  background: linear-gradient(90deg, #aa0022, var(--neon-red));
+  box-shadow: 0 0 8px var(--neon-red);
+}
+
+.front-fill {
+  background: linear-gradient(90deg, #0088cc, var(--neon-cyan));
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.emp-fill {
+  background: linear-gradient(90deg, #8800ff, #cc00ff);
+  box-shadow: 0 0 8px #cc00ff;
+}
+
+.weapon-note {
+  font-size: 0.58rem;
+  color: rgba(224, 244, 255, 0.6);
+  letter-spacing: 0.5px;
+}
+
+/* -------------------------------------------------------------
+   BOTTOM ALERT BANNER
+   ------------------------------------------------------------- */
+.hud-bottom-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.combat-alert-banner {
+  background: rgba(4, 8, 16, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 1.5px;
+  color: #c0e8ff;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  text-align: center;
+}
+
+/* -------------------------------------------------------------
+   TOUCH OVERLAY (FOR MOBILE / TABLETS)
+   ------------------------------------------------------------- */
+.touch-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.touch-overlay.hidden {
+  display: none !important;
+}
+
+.touch-left-dpad {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.touch-horizontal {
+  display: flex;
+  gap: 20px;
+}
+
+.touch-right-actions {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.touch-btn {
+  width: 60px;
+  height: 60px;
+  background: rgba(10, 20, 35, 0.7);
+  border: 2px solid rgba(0, 240, 255, 0.4);
+  color: #fff;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.touch-btn:active {
+  background: rgba(0, 240, 255, 0.3);
+  border-color: var(--neon-cyan);
+}
+
+.touch-btn-rear {
+  grid-column: span 2;
+  width: auto;
+  border-radius: 6px;
+  height: 48px;
+  background: rgba(60, 5, 15, 0.75);
+  border-color: var(--neon-red);
+  color: #ff99aa;
+  font-size: 0.85rem;
+}
+
+.touch-btn-rear:active {
+  background: var(--neon-red);
+  color: #fff;
+}
+
+.touch-btn-front {
+  width: auto;
+  border-radius: 6px;
+  height: 48px;
+  font-size: 0.8rem;
+}
+
+.touch-btn-mode {
+  width: auto;
+  border-radius: 6px;
+  height: 48px;
+  font-size: 0.8rem;
+}
+
+.touch-btn-boost {
+  grid-column: span 2;
+  width: auto;
+  border-radius: 6px;
+  height: 42px;
+  border-color: var(--neon-amber);
+  color: var(--neon-amber);
+  font-size: 0.85rem;
+}
+
+/* -------------------------------------------------------------
+   MODAL DIALOG / START SCREEN
+   ------------------------------------------------------------- */
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(10, 0, 5, 0.85) 0%, rgba(2, 2, 4, 0.96) 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  transition: opacity 0.4s ease;
+}
+
+.modal-backdrop.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-card {
+  width: 90%;
+  max-width: 680px;
+  background: rgba(8, 10, 18, 0.95);
+  border: 1px solid var(--neon-red);
+  border-radius: 8px;
+  box-shadow: 0 0 50px rgba(255, 8, 56, 0.35), inset 0 0 30px rgba(255, 8, 56, 0.1);
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-glow-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--neon-red), transparent);
+  box-shadow: 0 0 15px var(--neon-red);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  color: #fff;
+  margin-bottom: 6px;
+  text-align: center;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+}
+
+.modal-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  color: var(--neon-cyan);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.feature-highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(14, 18, 28, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid var(--neon-cyan);
+  padding: 10px 16px;
+  border-radius: 4px;
+}
+
+.feature-item:nth-child(2) {
+  border-left-color: var(--neon-red);
+  background: rgba(30, 8, 14, 0.5);
+}
+
+.feature-icon {
+  font-size: 1.5rem;
+}
+
+.feature-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feature-text strong {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+.feature-text span {
+  font-size: 0.8rem;
+  color: #a0c4e0;
+}
+
+.keybinds-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  width: 100%;
+  background: rgba(5, 7, 12, 0.7);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 14px;
+  border-radius: 4px;
+  margin-bottom: 26px;
+}
+
+.keybind-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.k-key {
+  background: rgba(0, 240, 255, 0.15);
+  border: 1px solid var(--neon-cyan);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  min-width: 45px;
+  text-align: center;
+}
+
+.modal-button-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.primary-action-btn {
+  flex: 1.4;
+  position: relative;
+  background: linear-gradient(90deg, #99001e, var(--neon-red));
+  border: 1px solid #ff4466;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  padding: 16px 24px;
+  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 0 0 30px rgba(255, 8, 56, 0.6);
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.primary-action-btn:hover {
+  background: linear-gradient(90deg, var(--neon-red), #ff4466);
+  box-shadow: 0 0 45px rgba(255, 8, 56, 0.9);
+  transform: translateY(-2px);
+}
+
+.primary-action-btn:active {
+  transform: translateY(1px);
+}
+
+.secondary-action-btn {
+  flex: 1;
+  background: rgba(10, 16, 26, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  color: #b0e8ff;
+  font-family: var(--font-tech);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 16px 20px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.secondary-action-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--neon-cyan);
+  color: #fff;
+  box-shadow: 0 0 15px var(--neon-cyan-glow);
+}
+
+.modal-footer-notes {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: rgba(224, 244, 255, 0.4);
+  letter-spacing: 1px;
+}
+
+/* -------------------------------------------------------------
+   RESPONSIVE DESIGN (Tablets & Mobile)
+   ------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .hud-topbar {
+    padding: 6px 12px;
+  }
+  .hud-center-stats {
+    gap: 8px;
+  }
+  .stat-pill {
+    padding: 4px 10px;
+  }
+  .stat-value {
+    font-size: 1rem;
+  }
+  .rear-pip-container {
+    width: 200px;
+    height: 90px;
+    top: 60px;
+  }
+  .hud-left-panel {
+    bottom: 20px;
+    left: 10px;
+    width: 200px;
+  }
+  .hud-right-panel {
+    bottom: 20px;
+    right: 10px;
+    width: 220px;
+  }
+  .speed-number {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .hud-topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hud-top-actions {
+    display: none;
+  }
+  .rear-pip-container {
+    width: 150px;
+    height: 75px;
+    top: 55px;
+  }
+  .hud-left-panel, .hud-right-panel {
+    display: none;
+  }
+  .touch-overlay {
+    display: block !important;
+  }
+  .keybinds-summary {
+    grid-template-columns: 1fr;
+  }
+  .modal-button-row {
+    flex-direction: column;
+  }
+}
+
+/* ===================================================================
+   TRON: ARES — 5-MODE TRANSFORMATION UPGRADE STYLES
+   Vehicle selector, wave banners, combo meter, boss bar, vignette,
+   pause overlay, scenario picker.
+   =================================================================== */
+
+/* ---------- Interactive elements need pointer events ---------- */
+.mode-card, .pause-card, .pause-card button, .scenario-btn, .boss-bar {
+  pointer-events: auto;
+}
+
+/* ---------- Vehicle configuration selector (5 modes) ---------- */
+.mode-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin: 8px 0 6px 0;
+}
+
+.mode-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 3px 5px 3px;
+  border: 1px solid rgba(0, 240, 255, 0.22);
+  border-radius: 5px;
+  background: rgba(3, 12, 20, 0.55);
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+.mode-card:hover {
+  border-color: rgba(0, 240, 255, 0.65);
+  transform: translateY(-1px);
+}
+
+.mode-card.active {
+  border-color: var(--neon-red);
+  background: rgba(40, 2, 10, 0.65);
+  box-shadow: 0 0 12px rgba(255, 8, 56, 0.45), inset 0 0 10px rgba(255, 8, 56, 0.18);
+}
+
+.mode-card.active .mc-name {
+  color: #fff;
+  text-shadow: 0 0 8px var(--neon-red);
+}
+
+.mc-icon { font-size: 0.95rem; line-height: 1; }
+.mc-name {
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  letter-spacing: 0.5px;
+  color: #9fd8e8;
+  text-align: center;
+}
+.mc-key {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--neon-cyan);
+  opacity: 0.75;
+}
+
+/* ---------- Active vehicle spec readout ---------- */
+.vehicle-spec-box {
+  border: 1px solid rgba(0, 240, 255, 0.18);
+  border-radius: 5px;
+  padding: 5px 7px 6px 7px;
+  background: rgba(2, 8, 14, 0.5);
+  margin-bottom: 6px;
+}
+
+.vs-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+#active-vehicle-name {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 0.6px;
+  color: #fff;
+}
+
+.vs-role {
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  color: var(--neon-cyan);
+  opacity: 0.8;
+  text-align: right;
+}
+
+.vs-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vs-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.46rem;
+  color: #86b8c8;
+  width: 22px;
+}
+
+.vs-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(0, 40, 60, 0.6);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-right: 4px;
+}
+
+.vs-fill { height: 100%; width: 50%; border-radius: 2px; transition: width 0.4s ease; }
+.vs-fill.spd { background: linear-gradient(90deg, #00f0ff, #7dfcff); box-shadow: 0 0 6px var(--neon-cyan-glow); }
+.vs-fill.agi { background: linear-gradient(90deg, #39ff88, #b6ffd4); box-shadow: 0 0 6px rgba(57, 255, 136, 0.5); }
+.vs-fill.arm { background: linear-gradient(90deg, #ffaa00, #ffd67d); box-shadow: 0 0 6px var(--neon-amber-glow); }
+
+/* ---------- Special weapon ready pulse ---------- */
+.weapon-recharge-fill.ready {
+  animation: readyPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes readyPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.75); }
+}
+
+/* ---------- Combo pill ---------- */
+#combo-pill.combo-hot {
+  border-color: var(--neon-red);
+  box-shadow: 0 0 14px rgba(255, 8, 56, 0.55);
+  animation: comboPop 0.35s ease-out;
+}
+
+#combo-pill.combo-hot .stat-value {
+  color: #fff;
+  text-shadow: 0 0 10px var(--neon-red);
+}
+
+@keyframes comboPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Boss integrity bar ---------- */
+.boss-bar {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.3s ease, max-height 0.3s ease;
+  border: 1px solid rgba(255, 170, 0, 0.45);
+  border-radius: 5px;
+  background: rgba(20, 8, 0, 0.72);
+  padding: 0 8px;
+  margin-bottom: 6px;
+}
+
+.boss-bar.visible {
+  opacity: 1;
+  max-height: 70px;
+  padding: 6px 8px;
+}
+
+.boss-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--neon-amber);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.boss-track {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(60, 25, 0, 0.8);
+  overflow: hidden;
+}
+
+.boss-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ffaa00, #ff4a00);
+  box-shadow: 0 0 10px var(--neon-amber-glow);
+  transition: width 0.15s linear;
+}
+
+/* ---------- Wave banner ---------- */
+#wave-banner {
+  position: absolute;
+  top: 26%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.92);
+  text-align: center;
+  z-index: 30;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+#wave-banner.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+#wave-banner.hidden { display: none; }
+
+#wave-banner-title {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: #fff;
+  text-shadow: 0 0 18px var(--neon-red), 0 0 42px rgba(255, 8, 56, 0.65);
+}
+
+#wave-banner-sub {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  color: var(--neon-cyan);
+  margin-top: 4px;
+  text-shadow: 0 0 12px var(--neon-cyan-glow);
+}
+
+/* ---------- Damage vignette ---------- */
+#damage-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(255, 8, 56, 0) 42%, rgba(255, 8, 56, 0.55) 100%);
+}
+
+/* ---------- FPS counter ---------- */
+.fps-counter {
+  position: absolute;
+  right: 20px;
+  bottom: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: rgba(0, 240, 255, 0.55);
+  letter-spacing: 1px;
+}
+
+/* ---------- Pause overlay ---------- */
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(1, 3, 8, 0.72);
+  backdrop-filter: blur(7px);
+}
+
+.pause-overlay.hidden { display: none; }
+
+.pause-card {
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  border: 1px solid var(--panel-border-red);
+  border-radius: 8px;
+  background: rgba(8, 10, 18, 0.95);
+  box-shadow: 0 0 45px rgba(255, 8, 56, 0.3);
+  padding: 26px 28px;
+}
+
+.pause-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 5px;
+  margin-bottom: 18px;
+}
+
+.pause-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pause-buttons .primary-action-btn,
+.pause-buttons .secondary-action-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.pause-hint {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: rgba(0, 240, 255, 0.7);
+}
+
+/* ---------- Scenario picker (start menu) ---------- */
+.scenario-block {
+  margin: 14px 0 4px 0;
+  border-top: 1px solid rgba(0, 240, 255, 0.15);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+  padding: 12px 0;
+}
+
+.scenario-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 3px;
+  color: var(--neon-cyan);
+  margin-bottom: 8px;
+}
+
+.scenario-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scenario-btn {
+  flex: 1;
+  min-width: 150px;
+  padding: 9px 10px;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
+  color: #9fd8e8;
+  background: rgba(2, 12, 20, 0.6);
+  border: 1px solid rgba(0, 240, 255, 0.28);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.scenario-btn:hover {
+  border-color: var(--neon-cyan);
+  color: #fff;
+}
+
+.scenario-btn.active {
+  border-color: var(--neon-red);
+  color: #fff;
+  background: rgba(45, 3, 12, 0.72);
+  box-shadow: 0 0 14px rgba(255, 8, 56, 0.4);
+}
+
+.scenario-desc {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: rgba(224, 244, 255, 0.75);
+  line-height: 1.5;
+}
+
+/* ---------- 9-vehicle selector (TRON: Ares fleet) ---------- */
+.mode-selector {
+  gap: 4px;
+}
+.mode-card {
+  padding: 5px 2px 4px 2px;
+}
+.mc-name {
+  font-size: 0.44rem;
+  letter-spacing: 0.3px;
+}
+
+/* Keep the larger menu scrollable on short screens */
+.modal-card {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+/* ---------- Laser beam capacitors ---------- */
+.beam-fill {
+  background: linear-gradient(90deg, #ff0838, #ff8a66) !important;
+  box-shadow: 0 0 8px rgba(255, 8, 56, 0.6);
+}
+.beam-fill-2 {
+  background: linear-gradient(90deg, #ff7a00, #ffd08a) !important;
+  box-shadow: 0 0 8px rgba(255, 122, 0, 0.6);
+}
+.beam-slot .weapon-note {
+  color: rgba(255, 160, 120, 0.8);
+}
+
+/* ---------- Rival program roster ---------- */
+.rival-panel {
+  position: fixed; top: 96px; right: 18px; z-index: 40;
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 186px; pointer-events: none;
+}
+.rival-row {
+  background: linear-gradient(90deg, rgba(40, 6, 60, 0.82), rgba(16, 3, 26, 0.62));
+  border: 1px solid rgba(192, 75, 255, 0.55);
+  border-left: 3px solid #c04bff;
+  border-radius: 4px; padding: 5px 8px 6px;
+  box-shadow: 0 0 14px rgba(150, 40, 220, 0.28);
+}
+.rival-head { display: flex; justify-content: space-between; align-items: baseline; }
+.rival-name { font-size: 12px; letter-spacing: 0.12em; color: #e9b8ff; font-weight: 700; }
+.rival-dist { font-size: 10px; color: #b98ad6; }
+.rival-craft { font-size: 9px; letter-spacing: 0.08em; color: #9a6fb8; margin: 1px 0 3px; }
+.rival-track { height: 4px; background: rgba(120, 40, 170, 0.3); border-radius: 2px; overflow: hidden; }
+.rival-fill {
+  height: 100%; background: linear-gradient(90deg, #c04bff, #f0a8ff);
+  box-shadow: 0 0 8px rgba(192, 75, 255, 0.7); transition: width 0.18s linear;
+}
+.rival-fill.low { background: linear-gradient(90deg, #ff3b6b, #ff9a6b); box-shadow: 0 0 8px rgba(255, 60, 100, 0.7); }
+
+/* ---------- Phone layout tuning ---------- */
+body.is-touch .rival-panel { top: 62px; right: 8px; min-width: 156px; gap: 4px; }
+body.is-touch .rival-row { padding: 4px 7px; }
+body.is-touch .rival-name { font-size: 11px; }
+body.is-touch .rival-craft { font-size: 8px; }
+body.is-touch .fps-counter { font-size: 11px; }
+body.is-touch #combat-alert { font-size: 13px; }
+body.is-touch .gauge-header { font-size: 10px; }
+
+.arena-btn {
+  border-color: rgba(0, 240, 255, 0.55) !important;
+  color: #bff6ff !important;
+  text-shadow: 0 0 10px rgba(0, 220, 255, 0.7) !important;
+}
+.arena-btn.active {
+  background: rgba(0, 240, 255, 0.18) !important;
+  border-color: rgba(0, 240, 255, 0.95) !important;
+}
+
+#tc-layer .tc-lane {
+  border-color: rgba(0, 240, 255, 0.7) !important;
+  color: #bff6ff !important;
+  text-shadow: 0 0 8px rgba(0, 220, 255, 0.8);
+  letter-spacing: 0.1em;
+}
+#tc-layer .tc-lane:active, #tc-layer .tc-lane.active {
+  background: rgba(0, 240, 255, 0.3) !important;
+}
+
+/* ---------- Crash guard ---------- */
+#crash-guard {
+  position: fixed; inset: 0; z-index: 9999; display: flex;
+  align-items: center; justify-content: center;
+  background: rgba(4, 1, 8, 0.92); backdrop-filter: blur(3px);
+}
+#crash-guard .cg-card {
+  max-width: 520px; padding: 26px 30px; text-align: center;
+  border: 1px solid rgba(255, 8, 56, 0.6); border-radius: 8px;
+  background: rgba(14, 2, 10, 0.95);
+  box-shadow: 0 0 40px rgba(255, 8, 56, 0.25);
+  font-family: var(--font-mono, monospace); color: #f0d8de;
+}
+#crash-guard h2 { margin: 0 0 10px; color: #ff0838; letter-spacing: 0.14em; font-size: 20px; }
+#crash-guard p { margin: 0 0 12px; font-size: 13px; color: #c8a8b2; }
+#crash-guard code {
+  display: block; margin: 0 0 18px; padding: 8px 10px; font-size: 11px;
+  color: #ffb0c0; background: rgba(255, 8, 56, 0.08);
+  border: 1px solid rgba(255, 8, 56, 0.25); border-radius: 4px;
+  overflow-wrap: anywhere; text-align: left;
+}
+#crash-guard button {
+  padding: 10px 26px; font: inherit; font-size: 13px; letter-spacing: 0.12em;
+  color: #fff; background: rgba(255, 8, 56, 0.25);
+  border: 1px solid #ff0838; border-radius: 4px; cursor: pointer;
+}
+#crash-guard button:hover { background: rgba(255, 8, 56, 0.45); }
+
+.campaign-btn {
+  border-color: rgba(192, 75, 255, 0.7) !important;
+  color: #e9b8ff !important;
+  text-shadow: 0 0 10px rgba(180, 60, 255, 0.75) !important;
+}
+.campaign-btn.active {
+  background: rgba(192, 75, 255, 0.22) !important;
+  border-color: rgba(192, 75, 255, 1) !important;
+}
