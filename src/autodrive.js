@@ -21,10 +21,13 @@ const wrapAngle = (a) => {
 export class AutoDrive {
   constructor(game) {
     this.game = game;
-    // Phones start in TouchDrive; desktop remembers your last choice.
+    // Phones start in TouchDrive; desktop starts MANUAL and only switches if
+    // the player asks for it. (v2 key: the v1 value was written by attract
+    // mode and tutorial runs, which must never decide how you play.)
     let saved = null;
-    try { saved = localStorage.getItem('gp:autodrive'); } catch (e) { /* ignore */ }
+    try { saved = localStorage.getItem('gp:autodrive:v2'); } catch (e) { /* ignore */ }
     this.enabled = saved === null ? !!window.__TRON_PHONE__ : saved === '1';
+    this.playerPreference = this.enabled;
     this.autoFire = true;
     this.manualUntil = 0;                     // player override window
     this.headingTimer = 0;
@@ -41,9 +44,18 @@ export class AutoDrive {
     this.demoAction = 6;
   }
 
-  setEnabled(on) {
+  /**
+   * @param on   enable the autopilot
+   * @param persist  false for demonstrations: attract mode and the showcase
+   *                 may drive the machine, but they must never overwrite the
+   *                 player's own choice of how to play.
+   */
+  setEnabled(on, persist = true) {
     this.enabled = !!on;
-    try { localStorage.setItem('gp:autodrive', this.enabled ? '1' : '0'); } catch (e) { /* ignore */ }
+    if (persist) {
+      this.playerPreference = this.enabled;
+      try { localStorage.setItem('gp:autodrive:v2', this.enabled ? '1' : '0'); } catch (e) { /* ignore */ }
+    }
     if (!this.enabled) {
       // hand the controls back cleanly
       const inp = this.game.inputs;

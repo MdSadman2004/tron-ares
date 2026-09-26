@@ -365,8 +365,12 @@ class TronAresGame {
       this.tutorial.start();
     }
 
-    if (this.autoDrive && this.autoDrive.enabled) {
-      this.hud.showAlert('◈ TOUCHDRIVE ACTIVE — TAP LANES + WEAPONS, THE MACHINE FLIES', true, 3600);
+    if (this.autoDrive) {
+      if (this.autoDrive.enabled) {
+        this.hud.showAlert('◈ TOUCHDRIVE ACTIVE — PRESS V TO DRIVE IT YOURSELF', true, 3600);
+      } else {
+        this.hud.showAlert('◈ MANUAL FLIGHT — YOU HAVE THE CONTROLS (V = AUTOPILOT)', false, 3000);
+      }
     }
     if (this.scenario.id === 'CAMPAIGN' && !options.mission) {
       // Selecting the protocol shows the briefing; launching a mission from
@@ -450,7 +454,10 @@ class TronAresGame {
     this.gameStats.comboStreak = 0;
     this.gameStats.multiplier = 1;
 
-    this.autoDrive.setEnabled(true);
+    // The demonstration drives itself — silently. It does NOT get to change
+    // how the player plays, and it is switched back the moment they take over.
+    this._prefBeforeAttract = this.autoDrive.playerPreference;
+    this.autoDrive.setEnabled(true, false);
     this.autoDrive.setAutoFire(true);
     this.waveState = 'idle';
     this.enemySpawner.waveScale = 2;
@@ -468,6 +475,12 @@ class TronAresGame {
     if (!this.attract) return;
     this.attract = false;
     this.scoringEnabled = true;
+    // hand the controls back exactly as the player left them
+    const pref = this._prefBeforeAttract !== undefined
+      ? this._prefBeforeAttract
+      : this.autoDrive.playerPreference;
+    this.autoDrive.setEnabled(pref, false);
+    this.autoDrive.setAutoFire(pref ? this.autoDrive.autoFire : false);
     this.enemySpawner.clear();
     this.weaponSystem.clear();
     this.pickups.clear();
