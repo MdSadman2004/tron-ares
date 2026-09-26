@@ -1639,3 +1639,13 @@ body.is-touch .gauge-header { font-size: 10px; }
   border: 1px solid #ff0838; border-radius: 4px; cursor: pointer;
 }
 #crash-guard button:hover { background: rgba(255, 8, 56, 0.45); }
+
+.campaign-btn {
+  border-color: rgba(192, 75, 255, 0.7) !important;
+  color: #e9b8ff !important;
+  text-shadow: 0 0 10px rgba(180, 60, 255, 0.75) !important;
+}
+.campaign-btn.active {
+  background: rgba(192, 75, 255, 0.22) !important;
+  border-color: rgba(192, 75, 255, 1) !important;
+}

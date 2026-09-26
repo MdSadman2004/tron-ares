@@ -17,10 +17,21 @@ export const ENEMY_TYPES = {
   JET: 'JET',
   DRONE: 'DRONE',
   GUNSHIP: 'GUNSHIP',
-  RECOGNIZER: 'RECOGNIZER'
+  RECOGNIZER: 'RECOGNIZER',
+  // Overhaul additions: the Overseer's purge units.
+  SENTINEL: 'SENTINEL',   // kamikaze interceptor — fast, fragile, detonates
+  WARDEN: 'WARDEN'        // armoured gun platform that anchors a formation
 };
 
 export const ENEMY_SPECS = {
+  SENTINEL: {
+    name: 'PURGE SENTINEL', hp: 55, speed: 92, radius: 1.7, score: 320,
+    contactDamage: 34, contactRadius: 2.8, air: true, kamikaze: true
+  },
+  WARDEN: {
+    name: 'SECTOR WARDEN', hp: 420, speed: 48, radius: 4.2, score: 1400,
+    contactDamage: 38, contactRadius: 5.0, air: true, boss: false
+  },
   CYCLE: {
     name: 'MCP PURSUER', hp: 70, speed: 56, radius: 2.0, score: 200,
     contactDamage: 13, contactRadius: 3.0, air: false
@@ -406,6 +417,8 @@ export class Enemy {
       case ENEMY_TYPES.DRONE: this._updateDrone(delta, player, distToPlayer, toPlayer); break;
       case ENEMY_TYPES.GUNSHIP: this._updateGunship(delta, player, weaponSystem, distToPlayer, toPlayer); break;
       case ENEMY_TYPES.RECOGNIZER: this._updateRecognizer(delta, player, weaponSystem, distToPlayer, toPlayer, ctx); break;
+      case ENEMY_TYPES.SENTINEL: this._updateJet(delta, player, weaponSystem, distToPlayer, toPlayer); break;
+      case ENEMY_TYPES.WARDEN: this._updateGunship(delta, player, weaponSystem, distToPlayer, toPlayer); break;
     }
 
     this.mesh.position.copy(this.position);
@@ -685,6 +698,34 @@ export class EnemySpawner {
         delay: i * 0.22,
         yaw: pYaw
       });
+    }
+
+    // --- Purge Sentinels from wave 3: they beeline and detonate ------------
+    if (waveNumber >= 3) {
+      const sentinels = Math.min(6, 1 + Math.floor(waveNumber / 2));
+      for (let i = 0; i < sentinels; i++) {
+        const local = new THREE.Vector3((Math.random() - 0.5) * 60, 0, -(40 + i * 9));
+        rotY(local, pYaw);
+        queue.push({
+          type: ENEMY_TYPES.SENTINEL,
+          position: pPos.clone().add(local).setY(14 + Math.random() * 10),
+          delay: 1.2 + i * 0.3
+        });
+      }
+    }
+
+    // --- Wardens from wave 5: the Overseer posts a gun platform ------------
+    if (waveNumber >= 5) {
+      const wardens = Math.min(2, Math.floor((waveNumber - 3) / 2));
+      for (let i = 0; i < wardens; i++) {
+        const local = new THREE.Vector3((i % 2 === 0 ? 1 : -1) * (70 + i * 25), 0, -(90 + i * 30));
+        rotY(local, pYaw);
+        queue.push({
+          type: ENEMY_TYPES.WARDEN,
+          position: pPos.clone().add(local).setY(30),
+          delay: 2.4 + i * 1.2
+        });
+      }
     }
 
     // --- Drone packs from wave 2 ------------------------------------------

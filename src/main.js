@@ -17,6 +17,7 @@ import { installTouchControls } from './mobile.js';
 import { OpponentDirector, OPPONENT_SPECS } from './opponents.js';
 import { AutoDrive } from './autodrive.js';
 import { createTutorial } from './tutorial.js';
+import { Campaign, CHAPTERS } from './campaign.js';
 
 // Rival programs share the enemy contract, so scoring, loot, ramming and
 // weapons treat them exactly like the MCP constructs.
@@ -43,6 +44,11 @@ export const SCENARIOS = {
     id: 'FREE',
     label: 'FREE FLIGHT ROAM',
     desc: 'Sandbox patrol. No hostiles, no damage — fly all nine configurations over the grid.'
+  },
+  CAMPAIGN: {
+    id: 'CAMPAIGN',
+    label: 'CAMPAIGN — AFTER ARES',
+    desc: 'Six checkpoints. A story, a choice before every run, and chassis you only earn by surviving. The Grid opens as you go.'
   },
   ARENA: {
     id: 'ARENA',
@@ -122,6 +128,7 @@ class TronAresGame {
     this.scoringEnabled = true;
     this.attractEnabled = !/[?&]attract=0/.test(location.search);
     this.tutorial = createTutorial(this);
+    this.campaign = new Campaign(this);
 
     // Autonomous play: ?auto=1 (PLAY-DEMO.bat) hands the machine to the
     // autopilot and lets it run — soaks, demos and screenshot passes.
@@ -325,7 +332,7 @@ class TronAresGame {
     this.hud && this.hud.showPause(state === 'paused');
   }
 
-  startGame() {
+  startGame(options = {}) {
     const modalScreen = document.getElementById('modal-screen');
     if (modalScreen) modalScreen.classList.add('hidden');
 
@@ -361,6 +368,13 @@ class TronAresGame {
     if (this.autoDrive && this.autoDrive.enabled) {
       this.hud.showAlert('◈ TOUCHDRIVE ACTIVE — TAP LANES + WEAPONS, THE MACHINE FLIES', true, 3600);
     }
+    if (this.scenario.id === 'CAMPAIGN' && !options.mission) {
+      // Selecting the protocol shows the briefing; launching a mission from
+      // that briefing must fall through and actually start the run.
+      this.startCampaignFlow();
+      return;
+    }
+
     if (this.scenario.id === 'ARENA') {
       // bike protocol: everyone rides the deck with the wall lit
       this.waveState = 'idle';
@@ -411,6 +425,11 @@ class TronAresGame {
     if (modalSubtitle) modalSubtitle.textContent = 'GRID INVASION PROTOCOL // 5-MODE COMBAT SIMULATOR';
     if (btnStart && btnStart.querySelector('.btn-text')) btnStart.querySelector('.btn-text').textContent = 'ENTER THE GRID';
     if (modalScreen) modalScreen.classList.remove('hidden');
+  }
+
+  /** Enter the story: briefing card → choice → mission → checkpoint. */
+  startCampaignFlow() {
+    this.campaign.start();
   }
 
   // ==================================================================
@@ -515,6 +534,13 @@ class TronAresGame {
   //  INPUT
   // ==================================================================
   requestMode(mode) {
+    // Story gating: the Grid only builds what you have earned. (Free-play
+    // protocols ignore the ladder entirely.)
+    if (this.campaign && this.campaign.active && !this.campaign.isUnlocked(mode)) {
+      const ch = this.campaign.chapter;
+      this.hud.showAlert(`⛔ CHASSIS LOCKED // CLEAR CHECKPOINT ${String(ch.id).padStart(2, '0')} TO UNLOCK`, true, 2200);
+      return false;
+    }
     if (this.scenario.id === 'ARENA' && mode !== 'CYCLE') {
       this.hud.showAlert('ARENA PROTOCOL // LIGHT CYCLE ONLY', true, 1500);
       return;
@@ -1330,6 +1356,24 @@ class TronAresGame {
 
       // 3b. Rival roster + HUD panel
       if (this.opponents) this.opponents.update(delta, this.vehicle);
+
+      // Story campaign: mission objectives tick while the run is live
+      if (this.campaign) this.campaign.update(delta);
+
+      // Containment field: the rideable world grows checkpoint by checkpoint
+      if (this.playZone) {
+        const z = this.playZone;
+        const p = this.vehicle.position;
+        const bx = p.x, bz = p.z;
+        p.x = Math.min(z.maxX - 10, Math.max(z.minX + 10, p.x));
+        p.z = Math.min(z.maxZ - 10, Math.max(z.minZ + 10, p.z));
+        if ((Math.abs(p.x - bx) > 0.05 || Math.abs(p.z - bz) > 0.05) &&
+            performance.now() - (this._wallAt || 0) > 2600) {
+          this._wallAt = performance.now();
+          this.hud.showAlert('⛔ CONTAINMENT FIELD // SECTOR SEALED — ADVANCE THE STORY', true, 2200);
+          this.camShake = Math.max(this.camShake || 0, 0.35);
+        }
+      }
 
       // Attract mode is a demonstration: it never ends and never scores.
       if (this.attract) {

@@ -1247,6 +1247,49 @@ export class TronWorld {
     this.streakPulse = 0;
   }
 
+  /**
+   * CONTAINMENT FIELD — the campaign seals the world until a checkpoint opens
+   * it. Four translucent walls mark the boundary of the rideable zone.
+   */
+  setPlayZone(box) {
+    this.playZone = box || null;
+    if (!this._field) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xff0838, transparent: true, opacity: 0.12,
+        side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
+      });
+      this._field = [];
+      const local = [[0, 0], [0, 0], [0, 0], [0, 0]];
+      const geo = new THREE.PlaneGeometry(1, 1);
+      for (let i = 0; i < 4; i++) {
+        const m = new THREE.Mesh(geo, mat.clone());
+        m.userData.local = local[i];
+        this._field.push(m);
+        this.scene.add(m);
+      }
+      this._fieldMat = mat;
+    }
+    const f = this._field;
+    if (!this.playZone) {
+      for (const m of f) m.visible = false;
+      return;
+    }
+    const { minX, maxX, minZ, maxZ } = this.playZone;
+    const width = maxX - minX;
+    const depth = maxZ - minZ;
+    const H = 260;
+    const place = (mesh, cx, cz, w, rotY) => {
+      mesh.visible = true;
+      mesh.position.set(cx, H / 2, cz);
+      mesh.scale.set(w, H, 1);
+      mesh.rotation.set(0, rotY, 0);
+    };
+    place(f[0], (minX + maxX) / 2, minZ, width, 0);
+    place(f[1], (minX + maxX) / 2, maxZ, width, 0);
+    place(f[2], minX, (minZ + maxZ) / 2, depth, Math.PI / 2);
+    place(f[3], maxX, (minZ + maxZ) / 2, depth, Math.PI / 2);
+  }
+
   /** Sector palettes — the world re-skins itself as you cross into a new region. */
   static SECTORS = {
     '1,1': { name: 'CORE GRID', tagline: 'ARES COMMAND SECTOR', fog: 0x0a0206, sky: 0xffffff, glow: 0xffffff, hemi: 0x5a0a18, accent: 0xff0838 },
@@ -1257,7 +1300,11 @@ export class TronWorld {
     '2,1': { name: 'EMBER ZONE', tagline: 'MCP FORGE', fog: 0x100200, sky: 0xffb080, glow: 0xff8a50, hemi: 0x3a0f05, accent: 0xff4a00 },
     '0,2': { name: 'GREEN DATAFOREST', tagline: 'GROWTH SUBSTRATE', fog: 0x02100a, sky: 0xa8ffc8, glow: 0x8effb8, hemi: 0x0a3320, accent: 0x39ff88 },
     '1,2': { name: 'RUST FLATS', tagline: 'DERELICT EXPANSE', fog: 0x120702, sky: 0xffc8a0, glow: 0xffa070, hemi: 0x331a08, accent: 0xff7a00 },
-    '2,2': { name: 'THE VOID', tagline: 'UNINDEXED SPACE', fog: 0x020204, sky: 0xd8d8ff, glow: 0xc0c0ff, hemi: 0x101018, accent: 0xffffff }
+    '2,2': { name: 'THE VOID', tagline: 'UNINDEXED SPACE', fog: 0x020204, sky: 0xd8d8ff, glow: 0xc0c0ff, hemi: 0x101018, accent: 0xffffff },
+    // OUTLANDS — the ring beyond the indexed grid, opened by the campaign
+    '3,3': { name: 'OUTLANDS', tagline: 'UNSEALED TERRITORY', fog: 0x0a0408, sky: 0xff9ab0, glow: 0xff6a8a, hemi: 0x2a0a14, accent: 0xff3b6b },
+    '4,4': { name: 'ARES RIFT', tagline: 'WHERE THE CROSSING HAPPENED', fog: 0x05010a, sky: 0xc9a8ff, glow: 0xa87fff, hemi: 0x1a0a33, accent: 0xb46bff },
+    '5,5': { name: 'I/O TOWER', tagline: 'UPLINK SITE', fog: 0x000a0c, sky: 0xa8f6ff, glow: 0x8eeaff, hemi: 0x06343d, accent: 0x00f0ff }
   };
 
   /** Detect sector crossings and blend the environment into the new palette. */
