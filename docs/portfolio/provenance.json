@@ -1,0 +1,29 @@
+{
+  "kind": "source-guide",
+  "source_head": "41a43ddaaca94e409f8a122573e58c650ba9176f",
+  "source_tree": "043d7b737fcedd6dbd4e54ddd1e88e452d26af6e",
+  "source_repository": "https://github.com/MdSadman2004/tron-ares",
+  "nodes": [
+    {
+      "label": "Game runtime",
+      "path": "src/main.js",
+      "detail": "Input, scenarios and gameplay orchestration"
+    },
+    {
+      "label": "Transforming chassis",
+      "path": "src/chassis.js",
+      "detail": "Articulated vehicle configurations"
+    },
+    {
+      "label": "Procedural grid",
+      "path": "src/world.js",
+      "detail": "World geometry and environment construction"
+    }
+  ],
+  "caption": "Source guide drawn from repository files; not a runtime screenshot or fresh benchmark.",
+  "generated_by": "render_guides.py",
+  "image_dimensions": [
+    1600,
+    960
+  ]
+}
